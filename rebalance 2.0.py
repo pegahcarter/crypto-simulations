@@ -91,69 +91,54 @@ light_coins = []
         # b. subtract heavy_weight_dif from light_weight_dif
     # 3 - loop through heavy_coins, if heavy_coin_weight < light_coin_weight, goto next heavy_coin
 
-def test_order(coin1, coin2):
+def rebalance_order(coin1, coin2):
     try:
         exchange.fetch_ticker(coin2 + '/' + coin1)['info']
-        test = coin2 + '/' + coin1, 'buy'
-        quantity = heavy_weight_dif * port_dollar_value / light_weight_dif
+        side = 'buy'
+        ticker = coin2 + '/' + coin1
     except:
+        side = 'sell'
         try:
             exchange.fetch_ticker(coin1 + '/' + coin2)['info']
-            test =  coin1 + '/' + coin2,
-            sell_order = True
+            ticker =  coin1 + '/' + coin2
         except:
-            test = coin1 + '/BTC', coin2 + '/BTC'
-        finally:
-            quantity = light_weight_dif * port_dollar_value / light_weight_dif
-            exchange.create_order(test[0], 'market', 'sell', quantity)
-            heavy_weight -=
-
+            ticker = coin2 + '/BTC'
+            exchange.create_order(coin1 + '/BTC', 'market', side, quantity)
+            side = 'buy'
+            # document two trades
+            quantity = smaller_weight_dif * port_dollar_value / data[data['symbol'] == coin2]['price'].values[0]
     finally:
-        if sell_order:
-            return
+        exchange.create_order(ticker, 'market', side, quantity)
 
-        exchange.create_order()
+def get_coin_info(coin_list, coin_index):
+    coin = coin_list[coin_index]
+    dollar_value = data[coin]['dollar_value']
+    weight = data[coin]['weight']
+    weight_dif = abs(weight - avg_weight)
+    return coin, dollar_value, weight, weight_dif
+
+def test(coin1, coin2, smaller_weight_dif):
+    quantity = smaller_weight_dif * port_dollar_value / light_value
+    rebalance_order(coin1, coin2)
+    data[heavy_coin]['weight'] -= smaller_weight_dif
+    data[light_coin]['weight'] -= smaller_weight_dif
 
 for a in range(len(heavy_coins)):
-    heavy_coin = data['symbol'][a]
-    heavy_weight = data[heavy_coin]['weight']
-    heavy_weight_dif = heavy_weight - avg_weight
-
     for b in range(len(light_coins)):
-        light_coin = data['symbol'][b]
-        light_value = data[light_coin]['dollar_value']
-        light_weight = data[light_coin]['weight']
-        light_weight_dif = avg_weight - light_weight
-
+        heavy_coin, heavy_value, heavy_weight, heavy_weight_dif = get_coin_info(heavy_coins, a)
+        light_coin, light_value, light_weight, light_weight_dif = get_coin_info(light_coins, b)
         if heavy_weight_dif > light_weight_dif:
-            quantity = light_weight_dif * port_dollar_value / light_value
-            create_order(...)
-            heavy_weight -= light_weight_dif
-            light_weight = avg_weight
-            data[heavy_coin]['weight'], data[light_coin]['weight'] = heavy_weight, light_weight
+            test(heavy_coin, light_coin, light_weight_dif)
             break
 
         else:
-
-            for c in range(a, len(heavy_coins)): # error if at last heavy_coin?
-                heavy_coin = data['symbol'][c]
-                heavy_weight = data[heavy_coin]['weight']
-                heavy_weight_dif = heavy_weight - avg_weight
-
+            for c in range(a + 1, len(heavy_coins)):
+                heavy_coin, heavy_value, heavy_weight, heavy_weight_dif = get_coin_info(heavy_coins, c)
                 if light_weight_dif > heavy_weight_dif:
-                    quantity = heavy_weight_dif * port_dollar_value / light_value
-                    create_order(...)
-                    heavy_weight = avg_weight
-                    light_weight -= heavy_weight_dif
-                    data[heavy_coin]['weight'], data[light_coin]['weight'] = heavy_weight, light_weight
-                    light_weight_dif = avg_weight - light_weight
+                    test(light_coin, heavy_coin, heavy_coin_dif)
 
                 else:
-                    quantity = light_weight_dif * port_dollar_value / light_value
-                    create_order(...)
-                    heavy_weight -= light_weight_dif
-                    light_weight = avg_weight
-                    data[heavy_coin]['weight'], data[light_coin]['weight'] = heavy_weight, light_weight
+                    test(heavy_coin, light_coin, light_weight_dif)
                     break
 
 
