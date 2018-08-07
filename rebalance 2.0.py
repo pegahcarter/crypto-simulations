@@ -75,21 +75,14 @@ while data['weight'][0] - data['weight'][len(data) - 1] > 2 * n * thresh and i <
 
 # Note: base rebalancing on sdev instead of baseline %?
 # -----------------------------------------------------
+param = {'test':True}
 port_dollar_value = data['dollar_value'].sum()
 avg_weight = 1/len(coins)
+thresh = .0005
 
 heavy_coins = []
 light_coins = []
-[heavy_coins.append(coin) for coin in coins if data[coin]['weight'] > avg_weight]
-[light_coins.append(coin) for coin in coins if data[coin]['weight'] < avg_weight]
-# [heavy_coins.append(coin) for coin in coins if data[coin]['weight'] > avg_weight else light_coins.append(coin)]
-
-
-    # 1 - only buy light coins that satisfy light_coin_weight < heavy_coin_weight
-    # 2 - buy light coins even if light_coin_weight > heavy_coin_weight
-        # a. trade for heavy_weight_dif
-        # b. subtract heavy_weight_dif from light_weight_dif
-    # 3 - loop through heavy_coins, if heavy_coin_weight < light_coin_weight, goto next heavy_coin
+[heavy_coins.append(coin) if data[data['symbol'] == coin]['weight'].values[0] > avg_weight else light_coins.append(coin) for coin in coins]
 
 def rebalance_order(coin1, coin2):
     try:
@@ -103,42 +96,49 @@ def rebalance_order(coin1, coin2):
             ticker =  coin1 + '/' + coin2
         except:
             ticker = coin2 + '/BTC'
-            exchange.create_order(coin1 + '/BTC', 'market', side, quantity)
+            print(exchange.create_order(coin1 + '/BTC', 'market', side, quantity, param))
             side = 'buy'
             # document two trades
             quantity = smaller_weight_dif * port_dollar_value / data[data['symbol'] == coin2]['price'].values[0]
     finally:
-        exchange.create_order(ticker, 'market', side, quantity)
+        print(exchange.create_order(ticker, 'market', side, quantity, param))
 
-def get_coin_info(coin_list, coin_index):
-    coin = coin_list[coin_index]
-    dollar_value = data[coin]['dollar_value']
-    weight = data[coin]['weight']
+def get_coin_info(coin):
+    dollar_value = data[data['symbol'] == coin]['dollar_value'].values[0]
+    weight = data[data['symbol'] == coin]['weight'].values[0]
+    #dollar_value = data[data[coin]['symbol'] == coin]['dollar_value']
     weight_dif = abs(weight - avg_weight)
     return coin, dollar_value, weight, weight_dif
 
 def test(coin1, coin2, smaller_weight_dif):
-    quantity = smaller_weight_dif * port_dollar_value / light_value
-    rebalance_order(coin1, coin2)
+    q = smaller_weight_dif * port_dollar_value / light_value
     data[heavy_coin]['weight'] -= smaller_weight_dif
     data[light_coin]['weight'] -= smaller_weight_dif
+    return q
 
 for a in range(len(heavy_coins)):
     for b in range(len(light_coins)):
-        heavy_coin, heavy_value, heavy_weight, heavy_weight_dif = get_coin_info(heavy_coins, a)
-        light_coin, light_value, light_weight, light_weight_dif = get_coin_info(light_coins, b)
-        if heavy_weight_dif > light_weight_dif:
-            test(heavy_coin, light_coin, light_weight_dif)
+        heavy_coin, heavy_value, heavy_weight, heavy_weight_dif = get_coin_info(heavy_coins[a])
+        light_coin, light_value, light_weight, light_weight_dif = get_coin_info(light_coins[b])
+        print(get_coin_info(heavy_coins[a]))
+        if abs(heavy_weight_dif - light_weight_dif) <= thresh:
+            break
+        elif heavy_weight_dif > light_weight_dif:
+            quantity = test(heavy_coin, light_coin, light_weight_dif)
+            rebalance_order(coin1, coin2)
             break
 
         else:
             for c in range(a + 1, len(heavy_coins)):
                 heavy_coin, heavy_value, heavy_weight, heavy_weight_dif = get_coin_info(heavy_coins, c)
-                if light_weight_dif > heavy_weight_dif:
-                    test(light_coin, heavy_coin, heavy_coin_dif)
-
+                if abs(heavy_weight_dif - light_weight_dif) <=thresh:
+                    break
+                elif light_weight_dif > heavy_weight_dif:
+                    quantity = test(light_coin, heavy_coin, heavy_coin_dif)
+                    rebalance_order(light_coin, heavy_coin)
                 else:
-                    test(heavy_coin, light_coin, light_weight_dif)
+                    quantity = test(heavy_coin, light_coin, light_weight_dif)
+                    rebalance_order(heavy_coin, light_coin)
                     break
 
 
