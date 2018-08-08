@@ -63,93 +63,29 @@ from datetime import datetime
 from openpyxl import load_workbook
 
 
-excel_file = 'test_excel.xlsx'
-wb = load_workbook(file)
-sheet = wb.active
-row_num = sheet.max_row
-test = sheet.cell(row=row_num, column=1).value
 
-trade_id = sheet.cell(row=row_num, column=1).value + 1
-single_trade = None
-if not first_trade:
-    rebalance_id = sheet.cell(row=row_num, column=2)
-else:
-    rebalance_id = sheet.cell(row=row_num, column=2) + 1
-
-trade_date = '2018-08-16'
-ticker = 'ETH/BTC'
-ticker1 = ticker[:4]
-ticker2 = ticker[4:]
-dollar_value = 100
+trade_id	rebalance_id	date	side	ticker1	ticker2	quantity	dollar_value	fees
 
 
 
+def write_to_excel(ticker, side, quantity, trade_in_dollars, single_trade):
 
-new_order = [trade_id, rebalance_id, trade_date, ticker1, ticker2, dollar_value]
-for col_num,val in zip(len(new_order), new_order):
-    sheet.cell(row=row_num, column=col_num + 1).value = val
-
-
-wb.save(file)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-def write_to_excel(side, ticker, quantity, dollar_value, single_trade):
     excel_file = 'transactions.xlsx'
     wb = wb.load_workbook(file)
     sheet = wb.active
     row_num = sheet.max_row
+    trade_id = sheet.cell(row=row_num, column=1).value + 1
     rebalance_id = sheet.cell(row=row_num, column=2).value
     if single_trade:
-        rebalance_id = sheet.cells(row=row_num, column=2).value + 1
-
+        rebalance_id += 1
     trade_date = datetime.datetime.now.strftime('%Y-%m%-d %H:%M')
-    ticker1 = ticker[:3]
-    ticker2 = ticker[4:]
-    fees = dollar_value * .00075
-    transaction = []
+    symbol1 = ticker[:3]
+    symbol2 = ticker[4:]
+    fees = trade_in_dollars * .00075
+    transaction = [trade_id, rebalance_id, trade_date, side, symbol1, symbol2, quantity, trade_in_dollars, fees, single_trade]
+    [sheet.cell(row=row_num, column=i+1).value = transaction[i] for i in range(9)]
+    wb.save(file)
 
-
-
-    trades = pd.read_csv('test_orders.csv')
-    last_order = trades.tail(n=1)
-    trade_id = last_order['trade_id'] + 1
-    if single_trade:
-        rebalance_id = last_order['rebalance_id']
-    else:
-        rebalance_id = last_order['rebalance_id'] + 1
-
-    trade_date = datetime.now.strftime('%Y-%m-%d %H-%M')
-    ticker1 = ticker[:3]
-    ticker2 = ticker[4:]
-    fees = dollar_value * .00075
-    single_trade ??
 
 def update_data(coins):
     df = pd.DataFrame(columns=['symbol', 'quantity', 'price', 'dollar_value'])
@@ -168,9 +104,12 @@ def update_data(coins):
     return df
 
 def rebalance_order(coin1, coin2, coin2_weight_dif):
-    amt = coin2_weight_dif * port_dollar_value / light_value # Note: is light_value correct? do I need to change?
+    trade_in_dollars = coin2_weight_dif * port_dollar_value
+    amt = trade_in_dollars / light_value # Note: is light_value correct? do I need to change?
+
     try:
         side = 'buy'
+        single_trade = True
         exchange.fetch_ticker(coin2 + '/' + coin1)['info']
         ticker = coin2 + '/' + coin1
     except:
@@ -180,11 +119,14 @@ def rebalance_order(coin1, coin2, coin2_weight_dif):
             ticker =  coin1 + '/' + coin2
         except:
             print(exchange.create_order(coin1 + '/BTC', 'market', side, amt, param))
-            ticker = coin2 + '/BTC'
+            write_to_excel(coin1 + '/BTC', side, amt, trade_in_dollars, single_trade)
             side = 'buy'
+            ticker = coin2 + '/BTC'
+            single_trade = False
 
     finally:
         print(exchange.create_order(ticker, 'market', side, amt, param))
+        write_to_excel(trade, side, amt, trade_in_dollars, single_trade)
         data.at(coin1, 'weight') -= coin2_weight_dif
         data.at(coin2, 'weight') += coin2_weight_dif
 
