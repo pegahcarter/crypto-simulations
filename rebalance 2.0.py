@@ -62,7 +62,81 @@ import ccxt
 from datetime import datetime
 from openpyxl import load_workbook
 
+
+excel_file = 'test_excel.xlsx'
+wb = load_workbook(file)
+sheet = wb.active
+row_num = sheet.max_row
+test = sheet.cell(row=row_num, column=1).value
+
+trade_id = sheet.cell(row=row_num, column=1).value + 1
+single_trade = None
+if not first_trade:
+    rebalance_id = sheet.cell(row=row_num, column=2)
+else:
+    rebalance_id = sheet.cell(row=row_num, column=2) + 1
+
+trade_date = '2018-08-16'
+ticker = 'ETH/BTC'
+ticker1 = ticker[:4]
+ticker2 = ticker[4:]
+dollar_value = 100
+
+
+
+
+new_order = [trade_id, rebalance_id, trade_date, ticker1, ticker2, dollar_value]
+for col_num,val in zip(len(new_order), new_order):
+    sheet.cell(row=row_num, column=col_num + 1).value = val
+
+
+wb.save(file)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 def write_to_excel(side, ticker, quantity, dollar_value, single_trade):
+    excel_file = 'transactions.xlsx'
+    wb = wb.load_workbook(file)
+    sheet = wb.active
+    row_num = sheet.max_row
+    rebalance_id = sheet.cell(row=row_num, column=2).value
+    if single_trade:
+        rebalance_id = sheet.cells(row=row_num, column=2).value + 1
+
+    trade_date = datetime.datetime.now.strftime('%Y-%m%-d %H:%M')
+    ticker1 = ticker[:3]
+    ticker2 = ticker[4:]
+    fees = dollar_value * .00075
+    transaction = []
+
+
+
     trades = pd.read_csv('test_orders.csv')
     last_order = trades.tail(n=1)
     trade_id = last_order['trade_id'] + 1
@@ -72,7 +146,7 @@ def write_to_excel(side, ticker, quantity, dollar_value, single_trade):
         rebalance_id = last_order['rebalance_id'] + 1
 
     trade_date = datetime.now.strftime('%Y-%m-%d %H-%M')
-    ticker1 = ticker[:4]
+    ticker1 = ticker[:3]
     ticker2 = ticker[4:]
     fees = dollar_value * .00075
     single_trade ??
