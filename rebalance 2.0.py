@@ -8,7 +8,7 @@ def write_to_excel():
 
     row_num = sheet.max_row
     trade_id = sheet.cell(row=row_num, column=1).value + 1
-    trade_date = datetime.datetime.now.strftime('%Y-%m%-d %H:%M')
+    trade_date = datetime.now()
     symbol1 = ticker[:3]
     symbol2 = ticker[4:]
     fees = trade_in_dollars * .00075
@@ -31,6 +31,7 @@ def update_data(coins):
         dollar_value = quantity * price
         df = df.append({'symbol': coin,'quantity':quantity,'price':price,'dollar_value':dollar_value}, ignore_index=True)
 
+    df = df.sort_values('dollar_value', ascending=False)
     return df
 
 
@@ -59,8 +60,33 @@ def rebalance_order(coin1, coin2, coin2_weight_dif):
     finally:
         print(exchange.create_order(ticker, 'market', side, amt, param))
         write_to_excel()
-        data.at(coin1, 'weight') -= coin2_weight_dif
-        data.at(coin2, 'weight') += coin2_weight_dif
+        data.loc[data['weight'] == coin1] -= coin2_weight_dif
+        data.loc[data['weight'] == coin2] += coin2_weight_dif
+
+--------
+def get_ratio(coin1, coin2): # Note: single_trade does not work with this function
+    try:
+        exchange.fetch_ticker(coin1 + '/' + coin2)['info']
+        return coin1 + '/' + coin2
+    except:
+        try:
+            exchange.fetch_ticker(coin2 + '/' + coin1)['info']
+            return coin2 + '/' + coin1
+        except:
+            # exchange.create_order(coin1 + 'BTC', 'market', 'sell', ???, param)
+            return coin2 + '/BTC'
+
+def rebalance(coin1, coin2, coin2_weight_dif):
+    ratio = get_ratio(coin1, coin2)
+    side = 'sell'
+    if coin1 = ratio[:3]:
+        side = 'buy'
+
+    trade_in_dollars = coin2_weight_dif * port_dollar_value
+    test = ratio[:3]
+    
+
+----------
 
 
 def get_coin_info(coin):
@@ -81,15 +107,11 @@ wallet = balance['info']['balances']
 coins = []
 heavy_coins = []
 light_coins = []
-coins = wallet.loc[float(wallet['free']) > 0, 'asset'].tolist()
+coins = wallet.loc[wallet['free'].astype(float) > .1, 'asset'].tolist()
 
 data = update_data(coins)
 port_dollar_value = data['dollar_value'].sum()
-
-# data['weight'] = data['dollar_value'].apply(lambda x: x / port_dollar_value)
-# data['weight'] = data['dollar_value'].divide(port_dollar_value)
-data['weight'] = list(map(lambda x: x / port_dollar_value, data['dollar_value']))
-data.sort_values('weight', ascending=False).set_index('symbol', inplace=True)
+data['weight'] = data['dollar_value'].divide(port_dollar_value)
 heavy_coins = data.loc[data['weight'] > avg_weight, 'symbol'].tolist()
 light_coins = data.loc[~data['symbol'].isin(heavy_coins), 'symbol'].tolist()
 
