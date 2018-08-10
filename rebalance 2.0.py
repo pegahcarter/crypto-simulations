@@ -4,7 +4,7 @@ import ccxt
 from datetime import datetime
 from openpyxl import load_workbook
 
-def write_to_excel():
+def write_to_excel(ticker, side, coin_amt):
 
     row_num = sheet.max_row
     trade_id = sheet.cell(row=row_num, column=1).value + 1
@@ -63,31 +63,6 @@ def rebalance_order(coin1, coin2, coin2_weight_dif):
         data.loc[data['weight'] == coin1] -= coin2_weight_dif
         data.loc[data['weight'] == coin2] += coin2_weight_dif
 
---------
-def get_ratio(coin1, coin2): # Note: single_trade does not work with this function
-    try:
-        exchange.fetch_ticker(coin1 + '/' + coin2)['info']
-        return coin1 + '/' + coin2
-    except:
-        try:
-            exchange.fetch_ticker(coin2 + '/' + coin1)['info']
-            return coin2 + '/' + coin1
-        except:
-            # exchange.create_order(coin1 + 'BTC', 'market', 'sell', ???, param)
-            return coin2 + '/BTC'
-
-def rebalance(coin1, coin2, coin2_weight_dif):
-    ratio = get_ratio(coin1, coin2)
-    side = 'sell'
-    if coin1 = ratio[:3]:
-        side = 'buy'
-
-    trade_in_dollars = coin2_weight_dif * port_dollar_value
-    test = ratio[:3]
-    
-
-----------
-
 
 def get_coin_info(coin):
 
@@ -142,6 +117,63 @@ for a in range(len(heavy_coins)):
                 else:
                     rebalance_order(heavy_coin, light_coin, light_weight_dif)
                     break
+--------------------------------------------------------------------------------
+# Testing
+
+def write_to_excel():
+    row_num = sheet.max_row
+    trade_id = sheet.cell(row=row_num, column=1).value + 1
+    trade_date = datetime.now()
+    symbol1 = ratio[:3]
+    symbol2 = ratio[4:]
+    fees = dollar_amt * .00075
+    transaction = [trade_id, rebalance_id, trade_date, side, symbol1, symbol2, coin_amt, dollar_amt, fees, single_trade]
+    [sheet.cell(row=row_num, column=i+1).value = transaction[i] for i in range(10)]
+    wb.save(file)
+
+
+def get_ratio(coin1, coin2):
+    try:
+        exchange.fetch_ticker(coin1 + '/' + coin2)['info']
+        return coin1 + '/' + coin2, True
+    except:
+        try:
+            exchange.fetch_ticker(coin2 + '/' + coin1)['info']
+            return coin2 + '/' + coin1, True
+        except:
+            return coin1 + '/BTC', False
+
+
+def trade_coin():
+    exchange.create_order(ratio, 'market', side, coin_amt, param)
+    write_to_excel()
+
+
+def rebalance(coin1, coin2): #larger coin, smaller coin
+    dollar_amt = trade_in_dollars(coin1)
+    ratio, single_trade = get_ratio(coin1, coin2)
+    side = 'sell'
+    if coin2 = ratio[:3]:
+        side = 'buy'
+
+    if not single_trade:
+        coin_amt = get_coin_amt(dollar_amt, coin1)
+        trade_coin()
+        ratio = coin2 + '/BTC'
+        side = 'sell'
+
+    coin_amt = get_coin_amt(dollar_amt, coin2)
+    trade_coin()
+
+
+
+def get_coin_amt(dollar_amt, coin):
+    return dollar_amt / data.loc[data['symbol'] == coin, 'price']
+
+
+def trade_in_dollars(coin):
+    weight_dif = abs(data.loc[data['symbol'] == coin, 'weight'] - avg_weight)
+    return weight_dif * port_dollar_value
 
 
 
@@ -184,12 +216,4 @@ for a in range(len(heavy_coins)):
 
 
 
-
-
-
-
-
-
-
-
-print('a')
+print()
