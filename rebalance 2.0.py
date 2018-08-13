@@ -32,6 +32,7 @@ def update_data(coins):
         df = df.append({'symbol': coin,'quantity':quantity,'price':price,'dollar_value':dollar_value}, ignore_index=True)
 
     df = df.sort_values('dollar_value', ascending=False)
+    df['weight'] = df['dollar_value'].divide(df['dollar_value'].sum())
     return df
 
 
@@ -85,8 +86,7 @@ light_coins = []
 coins = wallet.loc[wallet['free'].astype(float) > .1, 'asset'].tolist()
 
 data = update_data(coins)
-port_dollar_value = data['dollar_value'].sum()
-data['weight'] = data['dollar_value'].divide(port_dollar_value)
+avg_weight = len(data)
 heavy_coins = data.loc[data['weight'] > avg_weight, 'symbol'].tolist()
 light_coins = data.loc[~data['symbol'].isin(heavy_coins), 'symbol'].tolist()
 
@@ -120,7 +120,6 @@ for a in range(len(heavy_coins)):
 --------------------------------------------------------------------------------
 # Testing
 def update_data(coins):
-
     df = pd.DataFrame(columns=['symbol', 'quantity', 'price', 'dollar_value'])
     btc_price = float(exchange.fetch_ticker('BTC/USDT')['info']['lastPrice'])
     for coin in coins:
@@ -168,18 +167,16 @@ def trade_coin(ratio):
 
 
 def rebalance(coin1, coin2):
-    weight_dif = abs(data.loc[data['symbol'] == coin1, 'weight'] - avg_weight)
-    dollar_amt = weight_dif * port_dollar_value
+    dollar_amt = weight_to_sell *  data['dollar_value'].sum()
     fees = dollar_amt * .00075
     ticker = get_ticker(coin1, coin2)
     side = 'sell'
-    no_ticker = None
     try:
         coin_amt = dollar_amt / data.loc[data['symbol'] == ticker[1][:3], 'price']
         no_ticker = True
         trade_coin(ticker[1])
     finally:
-        if coin2 == ticker[0][:3] or coin2 == ticker[1][:3]:
+        if any(coin2 + '/' in x for x in ticker):
             side = 'buy'
 
         coin_amt = dollar_amt / data.loc[data['symbol'] == ticker[0][:3], 'price']
@@ -188,7 +185,7 @@ def rebalance(coin1, coin2):
 
 api_file = "C:/Users/Carter Carlson/Documents/Excel References/secret.csv"
 transaction_file = 'transactions.xlsx'
-
+no_ticker = None
 api = pd.read_csv(api_file)
 exchange = ccxt.binance({'options': {'adjustForTimeDifference': True},'apiKey': api['apiKey'][0],'secret': api['secret'][0]})
 balance = exchange.fetchBalance()
@@ -202,82 +199,25 @@ tickers = set()
 coins = wallet.loc[wallet['free'].astype(float) > .1, 'asset'].tolist()
 
 data = update_data(coins)
-port_dollar_value = data['dollar_value'].sum()
-heavy_coins = data.loc[data['weight'] > avg_weight, 'symbol'].tolist()
-light_coins = data.loc[~data['symbol'].isin(heavy_coins), 'symbol'].tolist()
+thresh = .05
+num_coins = len(data)
+avg_weight = 1/num_coins
+weight_thresh = avg_weight * thresh
 
 wb = wb.load_workbook(transaction_file)
 sheet = wb.active
 rebalance_id = sheet.cell(row=sheet.max_row, column=2).value + 1
 
-# Pick largest and smallest items
-# Sell as much as possible to smallest coin
-# Update data/reorder then do it again
+while True:
+    heavy_weight_dif = data['weight'][0] - avg_weight
+    light_weight_dif = avg_weight - data['weight'][num_coins-1]
+    # End loop if upper bounds and lower bounds of coin weight are within the threshold
+    if heavy_weight_dif and light_weight_dif < weight_thresh:
+        break
+    elif heavy_weight_dif > light_weight_dif:
+        weight_to_sell = light_weight_dif
+    else:
+        weight_to_sell = heavy_weight_dif
 
-thresh = .05
-weight_avg = 1/len(data)
-max_weight_dif = data['weight'][0]
-min_weight_dif = data['weight'][len(data) - 1]
-
-low_bounds = weight_avg - weight_avg * thresh
-high_bounds = weight_avg + weight_avg * thresh
-
-
-
-
-
-
-
-
-for a in range(len(heavy_coins)):
-    for b in range(len(light_coins)):
-        heavy_coin, heavy_value, heavy_weight, heavy_weight_dif = get_coin_info(heavy_coins[a])
-        light_coin, light_value, light_weight, light_weight_dif = get_coin_info(light_coins[b])
-        if abs(heavy_weight_dif - light_weight_dif) <= 2 * thresh * avg_weight:
-            break
-        elif heavy_weight_dif > light_weight_dif:
-            rebalance_order(heavy_coin, light_coin, light_weight_dif)
-            break
-        else:
-            for c in range(a + 1, len(heavy_coins)):
-                heavy_coin, heavy_value, heavy_weight, heavy_weight_dif = get_coin_info(heavy_coins[c])
-                if abs(heavy_weight_dif - light_weight_dif) <= 2 * thresh * avg_weight:
-                    break
-                elif light_weight_dif > heavy_weight_dif:
-                    rebalance_order(light_coin, heavy_coin, heavy_weight_dif)
-                else:
-                    rebalance_order(heavy_coin, light_coin, light_weight_dif)
-                    break
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-print()
+    rebalance(data['symbol'][0], data['symbol'][num_coins-1])
+    data = update_data(coins)
