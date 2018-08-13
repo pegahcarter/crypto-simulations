@@ -119,61 +119,108 @@ for a in range(len(heavy_coins)):
                     break
 --------------------------------------------------------------------------------
 # Testing
+def update_data(coins):
 
-def write_to_excel():
+    df = pd.DataFrame(columns=['symbol', 'quantity', 'price', 'dollar_value'])
+    btc_price = float(exchange.fetch_ticker('BTC/USDT')['info']['lastPrice'])
+    for coin in coins:
+        quantity = balance[coin]['total']
+        price = btc_price
+        if coin != 'BTC':
+            btc_ratio = float(exchange.fetch_ticker(coin + '/BTC/')['info']['lastprice'])
+            price *= btc_ratio
+
+        dollar_value = quantity * price
+        df = df.append({'symbol': coin,'quantity':quantity,'price':price,'dollar_value':dollar_value}, ignore_index=True)
+
+    df = df.sort_values('dollar_value', ascending=False)
+    df['weight'] = df['dollar_value'].divide(data['dollar_value'].sum())
+    return df
+
+
+def write_to_excel(ratio):
     row_num = sheet.max_row
     trade_id = sheet.cell(row=row_num, column=1).value + 1
     trade_date = datetime.now()
     symbol1 = ratio[:3]
     symbol2 = ratio[4:]
-    fees = dollar_amt * .00075
+    single_trade = 'Y'
+    if no_ticker:
+        single_trade = 'N'
+
     transaction = [trade_id, rebalance_id, trade_date, side, symbol1, symbol2, coin_amt, dollar_amt, fees, single_trade]
     [sheet.cell(row=row_num, column=i+1).value = transaction[i] for i in range(10)]
-    wb.save(file)
+    wb.save(file) # Note: will this be an issue since wb was loaded before function?  does .save close wb?
 
 
-def get_ratio(coin1, coin2):
-    try:
-        exchange.fetch_ticker(coin1 + '/' + coin2)['info']
-        return coin1 + '/' + coin2, True
-    except:
-        try:
-            exchange.fetch_ticker(coin2 + '/' + coin1)['info']
-            return coin2 + '/' + coin1, True
-        except:
-            return coin1 + '/BTC', False
+def get_ticker(coin1, coin2):
+    if coin1 + '/' + coin2 in tickers:
+        return coin1 + '/' + coin2,
+    elif coin2 + '/' + coin1 in tickers:
+        return coin2 + '/' + coin1,
+    else:
+        return coin1 + '/BTC', coin2 + '/BTC'
 
 
-def trade_coin():
-    exchange.create_order(ratio, 'market', side, coin_amt, param)
-    write_to_excel()
+def trade_coin(ratio):
+    exchange.create_order(ratio, 'market', side, coin_amt)
+    write_to_excel(ratio)
 
 
-def rebalance(coin1, coin2): #larger coin, smaller coin
-    dollar_amt = trade_in_dollars(coin1)
-    ratio, single_trade = get_ratio(coin1, coin2)
+def rebalance(coin1, coin2):
+    weight_dif = abs(data.loc[data['symbol'] == coin1, 'weight'] - avg_weight)
+    dollar_amt = weight_dif * port_dollar_value
+    fees = dollar_amt * .00075
+    ticker = get_ticker(coin1, coin2)
     side = 'sell'
-    if coin2 = ratio[:3]:
-        side = 'buy'
+    no_ticker = None
+    try:
+        coin_amt = dollar_amt / data.loc[data['symbol'] == ticker[1][:3], 'price']
+        no_ticker = True
+        trade_coin(ticker[1])
+    finally:
+        if coin2 == ticker[0][:3] or coin2 == ticker[1][:3]:
+            side = 'buy'
 
-    if not single_trade:
-        coin_amt = get_coin_amt(dollar_amt, coin1)
-        trade_coin()
-        ratio = coin2 + '/BTC'
-        side = 'sell'
-
-    coin_amt = get_coin_amt(dollar_amt, coin2)
-    trade_coin()
-
-
-
-def get_coin_amt(dollar_amt, coin):
-    return dollar_amt / data.loc[data['symbol'] == coin, 'price']
+        coin_amt = dollar_amt / data.loc[data['symbol'] == ticker[0][:3], 'price']
+        trade_coin(ticker[0])
 
 
-def trade_in_dollars(coin):
-    weight_dif = abs(data.loc[data['symbol'] == coin, 'weight'] - avg_weight)
-    return weight_dif * port_dollar_value
+api_file = "C:/Users/Carter Carlson/Documents/Excel References/secret.csv"
+transaction_file = 'transactions.xlsx'
+
+api = pd.read_csv(api_file)
+exchange = ccxt.binance({'options': {'adjustForTimeDifference': True},'apiKey': api['apiKey'][0],'secret': api['secret'][0]})
+balance = exchange.fetchBalance()
+wallet = balance['info']['balances']
+
+coins = []
+heavy_coins = []
+light_coins = []
+tickers = set()
+[tickers.add(ticker) for ticker in exchange.fetchTickers()]
+coins = wallet.loc[wallet['free'].astype(float) > .1, 'asset'].tolist()
+
+data = update_data(coins)
+port_dollar_value = data['dollar_value'].sum()
+heavy_coins = data.loc[data['weight'] > avg_weight, 'symbol'].tolist()
+light_coins = data.loc[~data['symbol'].isin(heavy_coins), 'symbol'].tolist()
+
+wb = wb.load_workbook(transaction_file)
+sheet = wb.active
+rebalance_id = sheet.cell(row=sheet.max_row, column=2).value + 1
+
+# Pick largest and smallest items
+# Sell as much as possible to smallest coin
+# Update data/reorder then do it again
+
+thresh = .05
+weight_avg = 1/len(data)
+max_weight_dif = data['weight'][0]
+min_weight_dif = data['weight'][len(data) - 1]
+
+low_bounds = weight_avg - weight_avg * thresh
+high_bounds = weight_avg + weight_avg * thresh
 
 
 
@@ -182,8 +229,25 @@ def trade_in_dollars(coin):
 
 
 
-
-
+for a in range(len(heavy_coins)):
+    for b in range(len(light_coins)):
+        heavy_coin, heavy_value, heavy_weight, heavy_weight_dif = get_coin_info(heavy_coins[a])
+        light_coin, light_value, light_weight, light_weight_dif = get_coin_info(light_coins[b])
+        if abs(heavy_weight_dif - light_weight_dif) <= 2 * thresh * avg_weight:
+            break
+        elif heavy_weight_dif > light_weight_dif:
+            rebalance_order(heavy_coin, light_coin, light_weight_dif)
+            break
+        else:
+            for c in range(a + 1, len(heavy_coins)):
+                heavy_coin, heavy_value, heavy_weight, heavy_weight_dif = get_coin_info(heavy_coins[c])
+                if abs(heavy_weight_dif - light_weight_dif) <= 2 * thresh * avg_weight:
+                    break
+                elif light_weight_dif > heavy_weight_dif:
+                    rebalance_order(light_coin, heavy_coin, heavy_weight_dif)
+                else:
+                    rebalance_order(heavy_coin, light_coin, light_weight_dif)
+                    break
 
 
 
