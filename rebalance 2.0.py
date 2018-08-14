@@ -25,13 +25,13 @@ def update_data(coins):
         quantity = balance[coin]['total']
         price = btc_price
         if coin != 'BTC':
-            btc_ratio = float(exchange.fetch_ticker(coin + '/BTC/')['info']['lastprice'])
+            btc_ratio = float(exchange.fetch_ticker(coin + '/BTC')['info']['lastprice'])
             price *= btc_ratio
 
         dollar_value = quantity * price
         df = df.append({'symbol': coin,'quantity':quantity,'price':price,'dollar_value':dollar_value}, ignore_index=True)
 
-    df = df.sort_values('dollar_value', ascending=False)
+    df = df.sort_values('dollar_value', ascending=False).reset_index()
     df['weight'] = df['dollar_value'].divide(df['dollar_value'].sum())
     return df
 
@@ -90,7 +90,7 @@ avg_weight = len(data)
 heavy_coins = data.loc[data['weight'] > avg_weight, 'symbol'].tolist()
 light_coins = data.loc[~data['symbol'].isin(heavy_coins), 'symbol'].tolist()
 
-wb = wb.load_workbook(transaction_file)
+wb = load_workbook(transaction_file)
 sheet = wb.active
 rebalance_id = sheet.cell(row=sheet.max_row, column=2).value + 1
 
@@ -119,6 +119,9 @@ for a in range(len(heavy_coins)):
                     break
 --------------------------------------------------------------------------------
 # Testing
+from datetime import datetime
+param = {'test':True}
+
 def update_data(coins):
     df = pd.DataFrame(columns=['symbol', 'quantity', 'price', 'dollar_value'])
     btc_price = float(exchange.fetch_ticker('BTC/USDT')['info']['lastPrice'])
@@ -126,18 +129,21 @@ def update_data(coins):
         quantity = balance[coin]['total']
         price = btc_price
         if coin != 'BTC':
-            btc_ratio = float(exchange.fetch_ticker(coin + '/BTC/')['info']['lastprice'])
+            btc_ratio = float(exchange.fetch_ticker(coin + '/BTC')['info']['lastPrice'])
             price *= btc_ratio
 
         dollar_value = quantity * price
         df = df.append({'symbol': coin,'quantity':quantity,'price':price,'dollar_value':dollar_value}, ignore_index=True)
 
-    df = df.sort_values('dollar_value', ascending=False)
+    df = df.sort_values('dollar_value', ascending=False).reset_index(drop=True)
     df['weight'] = df['dollar_value'].divide(data['dollar_value'].sum())
     return df
 
 
-def write_to_excel(ratio):
+def write_to_excel(ratio, side, coin_amt, dollar_amt, fees):
+    wb = load_workbook(transaction_file)
+    sheet = wb.active
+    rebalance_id = sheet.cell(row=sheet.max_row, column=2).value + 1
     row_num = sheet.max_row
     trade_id = sheet.cell(row=row_num, column=1).value + 1
     trade_date = datetime.now()
@@ -148,8 +154,10 @@ def write_to_excel(ratio):
         single_trade = 'N'
 
     transaction = [trade_id, rebalance_id, trade_date, side, symbol1, symbol2, coin_amt, dollar_amt, fees, single_trade]
-    [sheet.cell(row=row_num, column=i+1).value = transaction[i] for i in range(10)]
-    wb.save(file) # Note: will this be an issue since wb was loaded before function?  does .save close wb?
+    for i in range(10):
+        sheet.cell(row=row_num, column=i+1).value = transaction[i]
+
+    wb.save(file)
 
 
 def get_ticker(coin1, coin2):
@@ -161,26 +169,27 @@ def get_ticker(coin1, coin2):
         return coin1 + '/BTC', coin2 + '/BTC'
 
 
-def trade_coin(ratio):
-    exchange.create_order(ratio, 'market', side, coin_amt)
-    write_to_excel(ratio)
+def trade_coin(ratio, side, coin_amt, dollar_amt, fees):
+    exchange.create_order(ratio, 'market', side, coin_amt, param)
+    write_to_excel(ratio, side, coin_amt, dollar_amt, fees)
 
 
 def rebalance(coin1, coin2):
-    dollar_amt = weight_to_sell *  data['dollar_value'].sum()
+    dollar_amt = abs(weight_to_sell *  data['dollar_value'].sum())
     fees = dollar_amt * .00075
     ticker = get_ticker(coin1, coin2)
     side = 'sell'
     try:
-        coin_amt = dollar_amt / data.loc[data['symbol'] == ticker[1][:3], 'price']
+        coin_amt = float(dollar_amt / data.loc[data['symbol'] == ticker[1][:3], 'price'])
         no_ticker = True
-        trade_coin(ticker[1])
-    finally:
-        if any(coin2 + '/' in x for x in ticker):
-            side = 'buy'
+        trade_coin(ticker[1], side, coin_amt, dollar_amt, fees)
+    except:
+        pass
+    if any(coin2 + '/' in x for x in ticker):
+        side = 'buy'
 
-        coin_amt = dollar_amt / data.loc[data['symbol'] == ticker[0][:3], 'price']
-        trade_coin(ticker[0])
+    coin_amt = float(dollar_amt / data.loc[data['symbol'] == ticker[0][:3], 'price'])
+    trade_coin(ticker[0], side, coin_amt, dollar_amt, fees)
 
 
 api_file = "C:/Users/Carter Carlson/Documents/Excel References/secret.csv"
@@ -189,7 +198,7 @@ no_ticker = None
 api = pd.read_csv(api_file)
 exchange = ccxt.binance({'options': {'adjustForTimeDifference': True},'apiKey': api['apiKey'][0],'secret': api['secret'][0]})
 balance = exchange.fetchBalance()
-wallet = balance['info']['balances']
+wallet = pd.DataFrame(balance['info']['balances'])
 
 coins = []
 heavy_coins = []
@@ -197,26 +206,25 @@ light_coins = []
 tickers = set()
 [tickers.add(ticker) for ticker in exchange.fetchTickers()]
 coins = wallet.loc[wallet['free'].astype(float) > .1, 'asset'].tolist()
-
 data = update_data(coins)
-thresh = .05
+thresh = .01
 num_coins = len(data)
 avg_weight = 1/num_coins
 weight_thresh = avg_weight * thresh
 
-wb = wb.load_workbook(transaction_file)
-sheet = wb.active
-rebalance_id = sheet.cell(row=sheet.max_row, column=2).value + 1
+
 
 while True:
     heavy_weight_dif = data['weight'][0] - avg_weight
     light_weight_dif = avg_weight - data['weight'][num_coins-1]
-    # End loop if upper bounds and lower bounds of coin weight are within the threshold
-    if heavy_weight_dif and light_weight_dif < weight_thresh:
+    if heavy_weight_dif < weight_thresh and light_weight_dif < weight_thresh:
+        print('a')
         break
     elif heavy_weight_dif > light_weight_dif:
+        print('b')
         weight_to_sell = light_weight_dif
     else:
+        print('c')
         weight_to_sell = heavy_weight_dif
 
     rebalance(data['symbol'][0], data['symbol'][num_coins-1])
