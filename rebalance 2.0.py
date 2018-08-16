@@ -281,14 +281,23 @@ def trade_coin(ratio, side, coin_amt, dollar_amt, single_trade):
         wb.save('transactions.xlsx')
 
 
-api_file = "C:/Users/Carter Carlson/Documents/Excel References/secret.csv"
-api = pd.read_csv(api_file)
-exchange = ccxt.binance({'options': {'adjustForTimeDifference': True},'apiKey': api['apiKey'][0],'secret': api['secret'][0]})
+file = 'C:/Users/Carter Carlson/Documents/Administrative/api.txt'
+with open(file, 'r') as f:
+    api = f.readlines()
+    apiKey = api[0][:len(api[0])-1]
+    secret = api[1][:len(api[1])]
+
+exchange = ccxt.binance({
+    'options': {'adjustForTimeDifference': True},
+    'apiKey': apiKey,
+    'secret': secret})
+
 balance = exchange.fetchBalance()
 wallet = pd.DataFrame(balance['info']['balances'])
 
 coins = []
 tickers = set()
+
 [tickers.add(ticker) for ticker in exchange.fetchTickers()]
 coins = wallet.loc[wallet['free'].astype(float) > .1, 'asset'].tolist()
 data = update_data(coins)
