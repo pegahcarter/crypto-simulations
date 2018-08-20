@@ -19,9 +19,9 @@ for num_to_select in range(2,11,2):
         totals = []
 
         # with line comprehension - 0.01897
-        # w/o line comprehension  - 0.01496
-        for a in range(len(df)):
-            totals.append(sum([df[random_list[b]][a] * coin_amts[b] for b in range(num_to_select)]))
+        # w/o line comprehension  - 0.010
+        [totals.append(sum([df[random_list[b]][a] * coin_amts[b] for b in range(num_to_select)])) for a in range(len(df))]
+
         simulations[coins_chosen] = totals
 
     writer = pd.ExcelWriter(path + '/backtests/' + str(num_to_select) + '/' + str(num_to_select) + '_HODL.xlsx', engine='openpyxl')
