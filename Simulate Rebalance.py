@@ -60,24 +60,23 @@ for num_coins in range(2,11,2):
         for num_day in range(1,len(historical_prices)):
             while True:
                 total_dollar_value = update_weight_and_price(num_day)
-                weight_range = [min(data[2]), max(data[2])]
 
-                if weight_range[1] - weight_range[0] < 2 * avg_weight * thresh:
+                light_weight, heavy_weight = min(data[2]), max(data[2])
+                light_coin, heavy_coin = data[0][data[2].index(light_weight)], data[0][data[2].index(heavy_weight)]
+
+                if heavy_weight - light_weight < 2 * avg_weight * thresh:
                     break
-                elif avg_weight - weight_range[0] < weight_range[1] - avg_weight:
-                    weight_to_sell = (weight_range[1] - avg_weight)
+                elif avg_weight - light_weight < heavy_weight - avg_weight:
+                    weight_to_sell = (heavy_weight - avg_weight)
                 else:
-                    weight_to_sell = (avg_weight - weight_range[0])
+                    weight_to_sell = (avg_weight - light_weight)
 
-                small_coin, large_coin = data[0][data[2].index(min(data[2]))], data[0][data[2].index(max(data[2]))]
-
-                ratios = [small_coin + '/' + large_coin, large_coin + '/' + small_coin]
+                ratios = [light_coin + '/' + heavy_coin, heavy_coin + '/' + light_coin]
                 ticker = list((set(ratios) & tickers))
-
                 dollar_amt = weight_to_sell * total_dollar_value
 
                 if len(ticker) < 1:
-                    ticker = [large_coin + '/BTC', small_coin + '/BTC']
+                    ticker = [heavy_coin + '/BTC', light_coin + '/BTC']
                     denom = ticker[1][:ticker[1].find('/')]
                     trade_count += 2
                 else:
@@ -93,7 +92,7 @@ for num_coins in range(2,11,2):
                 denom_quantity = np.divide(dollar_amt, small_historical_prices[num_day][data[0].index(denom)])
                 denom_quantity_after_fees = (1-rate) * denom_quantity
 
-                if numer == small_coin:
+                if numer == light_coin:
                     update_quantity(numer, numer_quantity, denom, denom_quantity_after_fees)
                 else:
                     update_quantity(denom, denom_quantity_after_fees, numer, numer_quantity)
