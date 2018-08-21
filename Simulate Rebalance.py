@@ -6,6 +6,20 @@ from openpyxl import load_workbook
 import os
 import time
 import sys
+import cProfile
+
+
+def update_weight_and_price(num_day):
+    data[3] = list(np.multiply(small_historical_prices[num_day][1:], data[1]))
+    total = sum(data[3])
+    data[2] = list(np.divide(data[3], total))
+    return total
+
+
+def update_quantity(add_side, add_amt, subtract_side, subtract_amt):
+    data[1][data[0].index(add_side)] += add_amt
+    data[1][data[0].index(subtract_side)] -= subtract_amt
+
 
 file = os.getcwd() + '/historical data.xlsx'
 historical_prices = pd.read_excel(file)
@@ -15,8 +29,9 @@ tickers = set()
 
 start_amt = 5000
 thresh = .05
-#num_coins = 6
-for num_coins in range(4,5,2):
+
+# num_coins = 4
+for num_coins in range(6,11,2):
     print('------------------')
     print('\n# of coins:  ', num_coins)
 
@@ -31,10 +46,10 @@ for num_coins in range(4,5,2):
     rebalance_simulations = pd.DataFrame()
     hodl_simulations = pd.read_excel(path + 'HODL.xlsx')
     cols = hodl_simulations.columns.tolist()
-    # num_simulation = 0
     t0 = time.time()
-    for num_simulation in range(50): # len(cols)
-        if num_simulation % 50 == 0:
+    # num_simulation = 0
+    for num_simulation in range(301): # len(cols)
+        if num_simulation % 100 == 0:
            print(num_simulation, ' - ', (time.time()-t0)/60, ' min')
 
         fee = 0
@@ -47,15 +62,15 @@ for num_coins in range(4,5,2):
         coin_list = col_name.split('-')
         coin_amts = [amt_each / historical_prices[i][0] for i in coin_list]
 
-        data = pd.DataFrame({'symbol': coin_list, 'quantity': coin_amts})
-        data.set_index(keys='symbol',inplace=True)
-        data['weight'] = avg_weight
-        data['dollar_value'] = start_amt / num_coins
+        small_historical_prices = np.array(historical_prices[['date'] + coin_list])
+        data = [coin_list, coin_amts, [avg_weight] * num_coins]
+        data.append([amt_each] * num_coins)
+        # num_day = 1
         for num_day in range(1,len(historical_prices)):
 
             while True:
-                total_dollar_value = update_weight_and_value(num_day)
-                weight_range = data['weight'][::num_coins-1].tolist()
+                total_dollar_value = update_weight_and_price(num_day)
+                weight_range = [min(data[2]), max(data[2])]
 
                 if weight_range[1] - weight_range[0] < 2 * avg_weight * thresh:
                     break
@@ -64,11 +79,12 @@ for num_coins in range(4,5,2):
                 else:
                     weight_to_sell = (avg_weight - weight_range[0])
 
-                small_coin, large_coin = data.index.values[::num_coins-1]
+                small_coin, large_coin = data[0][data[2].index(min(data[2]))], data[0][data[2].index(max(data[2]))]
+
                 ratios = [small_coin + '/' + large_coin, large_coin + '/' + small_coin]
                 ticker = list((set(ratios) & tickers))
 
-                dollar_amt = np.float32(weight_to_sell * total_dollar_value)
+                dollar_amt = weight_to_sell * total_dollar_value
 
                 if len(ticker) < 1:
                     ticker = [large_coin + '/BTC', small_coin + '/BTC']
@@ -84,8 +100,8 @@ for num_coins in range(4,5,2):
                 rate = len(ticker) * .0025
                 fees += (dollar_amt * rate)
 
-                numer_quantity = dollar_amt / historical_prices[numer][num_day]
-                denom_quantity = dollar_amt / historical_prices[denom][num_day]
+                numer_quantity = np.divide(dollar_amt, small_historical_prices[num_day][data[0].index(numer) + 1])
+                denom_quantity = np.divide(dollar_amt, small_historical_prices[num_day][data[0].index(denom) + 1])
                 denom_quantity_after_fees = (1-rate) * denom_quantity
 
                 if numer == small_coin:
@@ -94,7 +110,7 @@ for num_coins in range(4,5,2):
                     update_quantity(denom, denom_quantity_after_fees, numer, numer_quantity)
 
             # document total portfolio value on that day
-            daily_totals.append(sum([historical_prices[coin][num_day] * data.at[coin, 'quantity'] for coin in data.index.values]))
+            daily_totals.append(sum(small_historical_prices[num_day][1:] * data[1]))
 
         # Add year of rebalancing simulation to simulation dataset
         rebalance_simulations[col_name] = daily_totals
@@ -105,37 +121,23 @@ for num_coins in range(4,5,2):
         simulation_summary.append([col_name, fees, trade_count, trades_eliminated, hodl_simulations[col_name][len(hodl_simulations) - 1], daily_totals[len(daily_totals)-1]])
 
     simulation_summary = pd.DataFrame(simulation_summary, columns=['portfolio','total_fees','num_trades','num_trades_saved','end_price_HODL','end_price_rebalanced'])
-    #rebalance_writer = pd.ExcelWriter(path + 'rebalanced.xlsx', engine='openpyxl')
-    #summary_writer = pd.ExcelWriter(path + 'summary.xlsx', engine='openpyxl')
+    rebalance_writer = pd.ExcelWriter(path + 'rebalanced.xlsx', engine='openpyxl')
+    summary_writer = pd.ExcelWriter(path + 'summary.xlsx', engine='openpyxl')
 
-    #rebalance_simulations.to_excel(rebalance_writer)
-    #simulation_summary.to_excel(summary_writer)
+    rebalance_simulations.to_excel(rebalance_writer)
+    simulation_summary.to_excel(summary_writer)
 
-    #rebalance_writer.save()
-    #summary_writer.save()
-
-def update_weight_and_value(num_day):
-    data['dollar_value'] = [data['quantity'][coin] * historical_prices[coin][num_day] for coin in data.index.values]
-    total = sum(data['dollar_value'])
-    data['weight'] = data['dollar_value'] / total
-    data.sort_values('weight', ascending=True, inplace=True)
-    return total
-
-
-def update_quantity(add_side, add_amt, subtract_side, subtract_amt):
-    data.at[add_side, 'quantity'] += add_amt
-    data.at[subtract_side, 'quantity'] -= subtract_amt
+    rebalance_writer.save()
+    summary_writer.save()
 
     # average simulation time - 8/16
     # 2   -  60/min
     # 4   -  50/min
-    # 6   -  43/min
-    # 8   -  32/min
-    # 10  -  26/min
 
     # 8/20 - rafactored simulation_summary to remove .loc
     # 2 - 120/min
     # 4 - 100/min
-    # 6 -
-    # 8 -
-    # 10 -
+
+    # 8/21 - refactored pandas DataFrames into numpy arrays
+    # 2 - 4,200/min
+    # 4 - 3,000/min
