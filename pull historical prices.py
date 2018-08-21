@@ -2,7 +2,6 @@ import os
 import sys
 import ccxt
 import pandas as pd
-from openpyxl import load_workbook
 
 
 exchange = ccxt.bittrex({'options': {'adjustForTimeDifference': True}})
@@ -34,10 +33,6 @@ for coin in coins:
 
 df['date'] /= 1000
 df.reset_index(drop=True, inplace=True)
-for col in df.columns[2:]:
-    df[col] *= df['BTC']
+[df[col] *= df['BTC'] for col in df.columns[2:]]
 
-wb = load_workbook('historical data.xlsx')
-writer = pd.ExcelWriter('historical data.xlsx', engine='openpyxl')
-df.to_excel(writer)
-writer.save()
+df.to_csv('historical_data.csv')

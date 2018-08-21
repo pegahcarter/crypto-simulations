@@ -2,15 +2,12 @@ import pandas as pd
 import numpy as np
 import random
 import ccxt
-from openpyxl import load_workbook
 import os
 import time
 import sys
-import cProfile
-
 
 def update_weight_and_price(num_day):
-    data[3] = list(np.multiply(small_historical_prices[num_day][1:], data[1]))
+    data[3] = list(np.multiply(small_historical_prices[num_day], data[1]))
     total = sum(data[3])
     data[2] = list(np.divide(data[3], total))
     return total
@@ -21,8 +18,8 @@ def update_quantity(add_side, add_amt, subtract_side, subtract_amt):
     data[1][data[0].index(subtract_side)] -= subtract_amt
 
 
-file = os.getcwd() + '/historical data.xlsx'
-historical_prices = pd.read_excel(file)
+t0 = time.time()
+historical_prices = pd.read_csv('historical_data.csv')
 exchange = ccxt.binance()
 tickers = set()
 [tickers.add(ticker) for ticker in exchange.fetchTickers()]
@@ -30,12 +27,7 @@ tickers = set()
 start_amt = 5000
 thresh = .05
 
-# num_coins = 4
-for num_coins in range(6,11,2):
-    print('------------------')
-    print('\n# of coins:  ', num_coins)
-
-    path = os.getcwd() + '/backtests/' + str(num_coins) + '/' + str(num_coins) + '_'
+for num_coins in range(2,11,2):
     avg_weight = 1/num_coins
     weight_thresh = np.float32(avg_weight * thresh)
     thresh_range = [avg_weight-weight_thresh, avg_weight + weight_thresh]
@@ -44,30 +36,28 @@ for num_coins in range(6,11,2):
 
     simulation_summary = []
     rebalance_simulations = pd.DataFrame()
-    hodl_simulations = pd.read_excel(path + 'HODL.xlsx')
-    cols = hodl_simulations.columns.tolist()
-    t0 = time.time()
-    # num_simulation = 0
-    for num_simulation in range(301): # len(cols)
-        if num_simulation % 100 == 0:
-           print(num_simulation, ' - ', (time.time()-t0)/60, ' min')
 
+    path = os.getcwd() + '/backtests/' + str(num_coins) + '/' + str(num_coins) + '_'
+    hodl_simulations = pd.read_csv(path + 'HODL.csv')
+    hodl_simulations = hodl_simulations.drop(hodl_simulations.columns[[0]], axis=1)
+    cols = hodl_simulations.columns.tolist()
+
+    for num_simulation in range(len(cols)):
         fee = 0
         fees = 0
         trade_count = 0
         trades_eliminated = 0
+        data = []
         daily_totals = [start_amt]
-
         col_name = cols[num_simulation]
         coin_list = col_name.split('-')
         coin_amts = [amt_each / historical_prices[i][0] for i in coin_list]
 
-        small_historical_prices = np.array(historical_prices[['date'] + coin_list])
+        small_historical_prices = np.array(historical_prices[coin_list])
         data = [coin_list, coin_amts, [avg_weight] * num_coins]
         data.append([amt_each] * num_coins)
         # num_day = 1
         for num_day in range(1,len(historical_prices)):
-
             while True:
                 total_dollar_value = update_weight_and_price(num_day)
                 weight_range = [min(data[2]), max(data[2])]
@@ -96,12 +86,11 @@ for num_coins in range(6,11,2):
                     trades_eliminated += 1
 
                 numer = ticker[0][:ticker[0].find('/')]
-
                 rate = len(ticker) * .0025
                 fees += (dollar_amt * rate)
 
-                numer_quantity = np.divide(dollar_amt, small_historical_prices[num_day][data[0].index(numer) + 1])
-                denom_quantity = np.divide(dollar_amt, small_historical_prices[num_day][data[0].index(denom) + 1])
+                numer_quantity = np.divide(dollar_amt, small_historical_prices[num_day][data[0].index(numer)])
+                denom_quantity = np.divide(dollar_amt, small_historical_prices[num_day][data[0].index(denom)])
                 denom_quantity_after_fees = (1-rate) * denom_quantity
 
                 if numer == small_coin:
@@ -110,25 +99,23 @@ for num_coins in range(6,11,2):
                     update_quantity(denom, denom_quantity_after_fees, numer, numer_quantity)
 
             # document total portfolio value on that day
-            daily_totals.append(sum(small_historical_prices[num_day][1:] * data[1]))
+            daily_totals.append(sum(small_historical_prices[num_day] * data[1]))
 
         # Add year of rebalancing simulation to simulation dataset
         rebalance_simulations[col_name] = daily_totals
 
         # Document important features of the simulations
         end_price_HODL = hodl_simulations[col_name][len(hodl_simulations) - 1]
+        end_price_rebalanced = daily_totals[len(daily_totals)-1]
 
-        simulation_summary.append([col_name, fees, trade_count, trades_eliminated, hodl_simulations[col_name][len(hodl_simulations) - 1], daily_totals[len(daily_totals)-1]])
+        simulation_summary.append([col_name, fees, trade_count, trades_eliminated, end_price_HODL, end_price_rebalanced])
 
     simulation_summary = pd.DataFrame(simulation_summary, columns=['portfolio','total_fees','num_trades','num_trades_saved','end_price_HODL','end_price_rebalanced'])
-    rebalance_writer = pd.ExcelWriter(path + 'rebalanced.xlsx', engine='openpyxl')
-    summary_writer = pd.ExcelWriter(path + 'summary.xlsx', engine='openpyxl')
 
-    rebalance_simulations.to_excel(rebalance_writer)
-    simulation_summary.to_excel(summary_writer)
+    rebalance_simulations.to_csv(path + 'rebalanced.csv')
+    simulation_summary.to_csv(path + 'summary.csv')
 
-    rebalance_writer.save()
-    summary_writer.save()
+print('Time to run (minutes): {:2.2f}'.format((time.time()-t0)/60))
 
     # average simulation time - 8/16
     # 2   -  60/min
