@@ -3,36 +3,43 @@ import sys
 import ccxt
 import pandas as pd
 
-
-exchange = ccxt.bittrex({'options': {'adjustForTimeDifference': True}})
+# Returns dates and prices for the ticker: excludes high, low, volume, etc.
+def ticker_array(ticker):
+	return np.array(exchange.fetch_ohlcv(ticker, '1d'))[:,:2]
 
 df = pd.DataFrame()
+exchange = ccxt.bittrex({'options': {'adjustForTimeDifference': True}})
+
+# Coins w/ market cap above $100 mil on July 30, 2017 (excludes Bitconnect)
+# For reference - https://coinmarketcap.com/historical/20170730/
+coins = ['BTC','ETH','XRP','LTC','DASH','XEM','ETC','IOTA','XMR','EOS','NEO','ZEC',
+		 'BTS','QTUM','USDT','STEEM','VERI','WAVES','ICN','SC','BCN','GNO','LSK',
+		 'GNT','REP','DOGE','SNT','XLM','GBYTE','DCR','FCT','DGB','MAID','GAME',
+		 'DGD','OMG','ARDR','MCAP','BAT','PPT','PIVX','NXT']
+
+# Since we can't pull BTC/BTC, use BTC/USDT ticker.  Otherwise, use coin/BTC as ticker
+tickers = ['BTC/USDT']
+[tickers.append(coin + '/BTC') for coin in coins[1:]]
+
+# Use DOGE/BTC as basis to pull dates, because DOGE
 dates = []
-
-for item in exchange.fetch_ohlcv('DOGE/BTC', '1d'):
-    if 1493800000000 < item[0] < 1525400000000: # May 5, 2017 to May 5, 2018
-        dates.append(item[0])
-
+[dates.append(day) for day, price in ticker_array('DOGE/BTC') if 1501373000000 < day < 1532910000000] # July 30, 2017 to July 30, 2018
 df['date'] = dates
-df['BTC'] = None
-for item in exchange.fetch_ohlcv('BTC/USDT', '1d'):
-    df.loc[df['date'] == item[0], 'BTC'] = item[1]
 
-# Coins in Shrimpy backtest-  ARDR,REP,BELA,BTC,BTCD,XBC,BCY,BTS,BLK,BCN,BTM,CLAM,XCP,DASH,DCR,DGB,DOGE,EMC2,ETH,ETHC,EXP,FCT,FLDC,GAME,GNO,GNT,GRC,HUC,LBC,LSK,LTC,MAID,XMR,NMC,NAV,XEM,NEOS,NXT,PASC,PPC,PINK,POT,RADS,SC,STEEM,XLM,STRAT,AMP,SYS,USDT,VRC,VTC,VIA,XRP,ZEC
-# Coins w/ market cap above $70 mil on May 5, 2017
-# excludes MAID, BTS, BCN, SNGLS, DGD
-coins = ['ETH','XRP','LTC','DASH','XEM','ETC','XMR','GNT','XLM','REP','DOGE','ZEC','GNO','STRAT','STEEM','FCT','DCR','PIVX','WAVES','LSK','ARDR']
+for coin, ticker in zip(coins, tickers):
+	# Pull information if ticker exists
+	try:
+		data = ticker_array(ticker)
+	except:
+		continue
 
-for coin in coins:
-    df[coin] = None
-    for item in exchange.fetch_ohlcv(coin + '/BTC', '1d'):
-        if item[0] < 1493800000000 or item[0] > 1525400000000:
-            continue
+	prices = []
+	[prices.append(price) for day, price in data if day in dates]
 
-        df.loc[df['date'] == item[0], coin] = item[1]
+	# Only add coin if it has a full year of price data
+	if len(prices) == len(dates):
+		df[coin] = prices
 
-df['date'] /= 1000
-df.reset_index(drop=True, inplace=True)
-[df[col] *= df['BTC'] for col in df.columns[2:]]
 
-df.to_csv('historical_data.csv')
+df.set_index(['date'], drop=True, inplace=True)
+df.to_csv('historical prices.csv')
