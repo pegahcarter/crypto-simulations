@@ -40,6 +40,8 @@ for coin, ticker in zip(coins, tickers):
 	if len(prices) == len(dates):
 		df[coin] = prices
 
+for col in df.columns.values[2:]:
+	df[col] *= df['BTC']
 
 df.set_index(['date'], drop=True, inplace=True)
 df.to_csv('historical prices.csv')
