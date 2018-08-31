@@ -20,58 +20,62 @@ start_amt = 5000
 thresh = .01
 
 data = pd.read_csv('historical prices.csv')
-coins = list(data.columns.values[1:])
-historical_prices = np.array(data[coins])
+coins = list(data.columns.values)
+dates = list(data['date'])
+historical_prices = np.array(data[coins][data.columns.values[1:]])
 
-for num_coins in range(2,5,2):
+
+for num_coins in range(2,11,2):
+	simulation_summary, rebalance_simulations = [], dates
+
 	avg_weight = 1/num_coins
-	weight_thresh = np.float32(avg_weight * thresh)
-
+	weighted_thresh = np.float32(avg_weight * thresh)
 	amt_each = start_amt / num_coins
-
-	simulation_summary = []
-	rebalance_simulations = []
 
 	path = os.getcwd() + '/backtests/' + str(num_coins) + '/' + str(num_coins) + '_'
 	hodl_simulations = pd.read_csv(path + 'HODL.csv')
 	hodl_simulations = hodl_simulations.drop(hodl_simulations.columns[[0]], axis=1)
 	cols = hodl_simulations.columns.tolist()
-	cols = cols[:500]
 	hodl_simulations = np.array(hodl_simulations)
 
 	coin_lists = [col.split('-') for col in cols]
 	coin_lists_indexes = [[coins.index(coin) for coin in coin_list] for coin_list in coin_lists]
-	t0 = time.time()
-	for num_simulation in range(500):
-		col = cols[num_simulation]
-		coin_list = coin_lists[num_simulation]
-		coin_list_index = coin_lists_indexes[num_simulation]
+	num_simulation = 0
+	for col, coin_list, coin_list_index in zip(cols, coin_lists, coin_lists_indexes):
 
 		fees, trade_count, trades_eliminated = 0, 0, 0
 		daily_totals = [start_amt]
 		small_historical_prices = historical_prices[:, coin_list_index]
 		coin_amts = amt_each / small_historical_prices[0]
 
-		# num_day = 1
 		for num_day in range(1,len(historical_prices)):
 			while True:
 
-				dollar_values = np.multiply(small_historical_prices[num_day], coin_amts)
+				dollar_values = small_historical_prices[num_day] * coin_amts
+
 				total_dollar_value = sum(dollar_values)
-				weights = np.divide(dollar_values, total_dollar_value)
+				weights = dollar_values / total_dollar_value
 
 				light_index, heavy_index = weights.argmin(), weights.argmax()
-				light_weight, heavy_weight = weights[light_index], weights[heavy_index]
-				light_coin, heavy_coin = coin_list[light_index], coin_list[heavy_index]
+				differences = [avg_weight - weights[light_index], weights[heavy_index] - avg_weight]
 
-				if heavy_weight - light_weight < 2 * avg_weight * thresh:
+				if weighted_thresh > max([avg_weight - min(weights), max(weights) - avg_weight]):
 					break
+
+
+				weight_to_sell = min([avg_weight - min(weights), max(weights) - avg_weight]):
+
+
+
+
 				elif avg_weight - light_weight < heavy_weight - avg_weight:
 					weight_to_sell = (heavy_weight - avg_weight)
 				else:
 					weight_to_sell = (avg_weight - light_weight)
 
 				dollar_amt = weight_to_sell * total_dollar_value
+
+				light_coin, heavy_coin = coin_list[light_index], coin_list[heavy_index]
 				ratios = [light_coin + '/' + heavy_coin, heavy_coin + '/' + light_coin]
 				ticker = list(set(ratios) & tickers)
 
@@ -99,6 +103,7 @@ for num_coins in range(2,5,2):
 			daily_totals.append(sum(small_historical_prices[num_day] * coin_amts)) #document total portfolio value on that day
 
 		end_price_HODL = hodl_simulations[len(hodl_simulations)-1, num_simulation] # Document important features of the simulations
+		num_simulation += 1
 		end_price_rebalanced = daily_totals[len(daily_totals)-1]
 		rebalance_simulations.append(daily_totals)
 		simulation_summary.append([col, fees, trade_count, trades_eliminated, end_price_HODL, end_price_rebalanced])
@@ -107,7 +112,8 @@ for num_coins in range(2,5,2):
 	rebalance_simulations = pd.DataFrame(rebalance_simulations, columns=cols)
 
 	simulation_summary = pd.DataFrame(simulation_summary, columns=['portfolio','total_fees','num_trades','num_trades_saved','end_price_HODL','end_price_rebalanced'])
-
+	print(len(coin_lists))
+	print(time.time() - t0)
 	rebalance_simulations.to_csv(path + 'rebalanced.csv')
 	simulation_summary.to_csv(path + 'summary.csv')
 
