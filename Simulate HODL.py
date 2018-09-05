@@ -18,7 +18,7 @@ start_amt = 5000
 # Simulate 2, 4, 6, 8, and 10 coins
 for num_to_select in range(2,11,2):
     amt_each = start_amt / num_to_select
-    simulations = pd.DataFrame({'date':df['date'].tolist()})
+    simulations = pd.DataFrame({'date':historical_prices['date'].tolist()})
 
     for x in range(1000):
 
