@@ -1,12 +1,100 @@
 import pandas as pd
 import numpy as np
 import ccxt
+import os
 from datetime import datetime
-from openpyxl import load_workbook
-from xlsxwriter.utility import xl_rowcol_to_cell as cell
+import pprint
 
+# 9/2/18
+transactions = pd.read_csv(os.getcwd() + '/transactions.csv')
+rebalance_id = max(transactions['rebalance_id']) + 1
+
+with open('C:/Users/Carter Carlson/Documents/Administrative/api.txt', 'r') as f:
+    api = f.readlines()
+    apiKey = api[0][:len(api[0])-1]
+    secret = api[1][:len(api[1])]
+
+exchange = ccxt.binance({
+    'options': {'adjustForTimeDifference': True},
+    'apiKey': apiKey,
+    'secret': secret})
+
+tickers = set()
+[tickers.add(ticker) for ticker in exchange.fetch_tickers()]
+
+wallet = pd.DataFrame(exchange.fetchBalance()['info']['balances'])
+quantities = []
+quantities = wallet.loc[wallet['free'] != '0.00000000']['free'].tolist()
+quantities = [float(i) for i in quantities]
+coins = wallet.loc[wallet['free'].astype(float) > .1, 'asset'].tolist()
+
+
+btc_price = exchange.fetch_ticker('BTC/USDT')['ask']
+
+prices = []
+for coin in coins:
+	# [prices.append(exchange.fetch_ticker(coin + '/BTC')['ask'] * btc_price) for coin in coins if coin != 'BTC' else prices.append(btc_price)]
+	# prices.append([float(exchange.fetch_ticker(coin + '/BTC')['info']['lastPrice']) * btc_ratio for coin in coins if coin != 'BTC' else btc_price])
+	if coin == 'BTC':
+		prices.append(btc_price)
+	else:
+		prices.append(exchange.fetch_ticker(coin + '/BTC')['ask'] * btc_price)
+dollar_values = np.multiply(quantities, prices).tolist()
+weights = np.divide(dollar_values, sum(dollar_values))
+
+'''
+Y1. analyze threshold								- done
+2. execute trade if threshold criteria = true		- done
+	a. decide if the trade is sell or buy			- done
+	b. get weight to sell/buy 						- done
+	c. convert weight to proper coin quantity		- done
+3. document trade									-
+4. update quantities/weights/dollar values			-
+'''
+
+avg_weight = 1/len(coins)
+thresh = .02
+
+while max(weights) - min(weights) > 2 * avg_weight * thresh:
+	weight_to_move = min([avg_weight-min(weights), max(weights)-avg_weight])
+	dollar_amt = weight_to_move * sum(dollar_values)
+	fees = dollar_amt * .0025
+
+	light_coin, heavy_coin = coins[weights.argmin()], coins[weights.argmax()]
+	ratios = {light_coin + '/' + heavy_coin, heavy_coin + '/' + light_coin}
+	ticker = list(ratios & tickers)
+
+	if ticker:
+		single_trade = True
+		side = ['sell']
+		if ticker[0][:ticker[0].find('/')] == heavy_coin:
+			side = ['buy']
+
+	else:
+		single_trade = False
+		ticker = [heavy_coin + '/BTC', light_coin + '/BTC']
+		side = ['sell', 'buy']
+
+	for t, s in zip(ticker, side):
+		numer, denom = t[:t.find('/')], t[t.find('/')+1:]
+		quantity = dollar_amt / prices[coins.index(numer)]
+		exchange.create_order(t, 'market', s, quantity)
+
+
+
+
+
+
+quantity = round(weight_to_move * data['dollar_value'].sum() / data[data['symbol'] == order[0][:order[0].find('/')]]['price'].values[0], 5)
+    print(exchange.create_order(order[0], 'market', order[1], quantity))
+
+if len(order) > 2:
+        quantity = round(weight_to_move * data['dollar_value'].sum() / data[data['symbol'] == order[2][:order[2].find('/')]]['price'].values[0], 5)
+        print(exchange.create_order(order[2], 'market', order[3], quantity))
+
+
+---------------------------------------------------------------------------------------------------
 #8/21/18
-
 def update_quantity(add_side, add_amt, subtract_side, subtract_amt):
     data[1][data[0].index(add_side)] += add_amt
     data[1][data[0].index(subtract_side)] -= subtract_amt
