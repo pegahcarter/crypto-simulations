@@ -94,7 +94,9 @@ tree.fit(X, Y)
 # histogram of feature importance
 feature_importance = tree.feature_importances_
 feature_importance = 100 * (feature_importance / max(feature_importance))
-sorted_features = np.argsort(feature_importance)
+temp = feature_importance.tolist()
+top_feats = sorted(feature_importance,reverse=True)[:10]
+sorted_features = np.array([temp.index(feat) for feat in top_feats])
 pos = np.arange(sorted_features.shape[0]) + .5
 plt.barh(pos, feature_importance[sorted_features], align='center')
 plt.yticks(pos, X.columns[sorted_features])
@@ -102,7 +104,7 @@ plt.show()
 
 
 # heatmap of variables
-X = historical_data[coins]+-
+X = historical_data[coins]
 correlations = X.corr()
 sns.heatmap(correlations)
 
@@ -129,11 +131,17 @@ xlm_no_df = file3.loc[file3['portfolio'].isin(xlm_no)]
 
 file1 = pd.read_csv(folder + 'HODL.csv')
 file2 = pd.read_csv(folder + 'rebalanced.csv')
-for a in [xlm_yes_df, xlm_no_df]:
-	avg_hodl = a['end_price_HODL'].mean()
-	avg_rebalance = a['end_price_rebalanced'].mean()
-	result = (avg_rebalance - avg_hodl) / avg_hodl
-	print(result)
 
-plt.plot(dates, historical_data['XLM'])
-plt.plot(dates, historical_data['BTC'])
+for a in [xlm_yes_df, xlm_no_df]:
+	diffs = a['end_price_rebalanced'] - a['end_price_HODL']
+	pos_returns = diffs[diffs>0]
+	neg_returns = diffs[diffs<0]
+
+	return_vs_hodl = diffs.mean() / a['end_price_HODL'].mean()
+
+	print('\n\n\nAverage hodl result: ', round(a['end_price_HODL'].mean(), 2))
+	print('Average rebalanced result: ', round(a['end_price_rebalanced'].mean(), 2))
+	print('# rebalance sims that outperformed: ', len(pos_returns))
+	print('# rebalance sims that underperformed: ', len(neg_returns))
+	print('Percent of rebalance sims to outperform HODL: ', round((len(pos_returns)/(len(pos_returns) + len(neg_returns))),2))
+	print('Avg rebalance performance compared to HODL', round(return_vs_hodl, 3))

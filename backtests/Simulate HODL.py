@@ -2,10 +2,13 @@ import pandas as pd
 import numpy as np
 import random
 import os
+import inspect
 
-path = os.getcwd()
-file = path + '/historical prices.csv'
-historical_prices = pd.read_csv(file)
+# Retrieve location of historical prices file
+filename = inspect.getframeinfo(inspect.currentframe()).filename
+path = os.path.dirname(os.path.abspath(filename)) + '/backtests/'
+historical_prices = pd.read_csv(path + 'historical prices.csv')
+
 coin_list = historical_prices.columns.tolist()[1:]
 coin_indexes = len(coin_list)-1
 
@@ -20,6 +23,7 @@ for num_to_select in range(2,11,2):
     amt_each = start_amt / num_to_select
     simulations = pd.DataFrame({'date':historical_prices['date'].tolist()})
 
+	# Run 1000 simulations
     for x in range(1000):
 
 		# Randomly select coins to simulate
@@ -33,4 +37,4 @@ for num_to_select in range(2,11,2):
         simulations[col_name] = data[:, random_list].dot(coin_amts)
 
     simulations.set_index(['date'], inplace=True)
-    simulations.to_csv(path + '/backtests/' + str(num_to_select) + '/' + str(num_to_select) + '_HODL.csv')
+    simulations.to_csv(path + str(num_to_select) + '/' + str(num_to_select) + '_HODL.csv')
