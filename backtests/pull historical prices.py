@@ -1,25 +1,58 @@
 import os
 import sys
 import ccxt
+import numpy as np
 import pandas as pd
 
 # Returns dates and prices for the ticker: excludes high, low, volume, etc.
 def ticker_array(ticker):
 	return np.array(exchange.fetch_ohlcv(ticker, '1d'))[:,:2]
 
-df = pd.DataFrame()
-exchange = ccxt.bittrex({'options': {'adjustForTimeDifference': True}})
+# Use coins listed on Bittrex
+primary_exchange = ccxt.bittrex({'options': {'adjustForTimeDifference': True}})
+market = primary_exchange.load_markets()
+tickers = list(market.keys())
 
-# Coins w/ market cap above $100 mil on July 30, 2017 (excludes Bitconnect)
-# For reference - https://coinmarketcap.com/historical/20170730/
-coins = ['BTC','ETH','XRP','LTC','DASH','XEM','ETC','IOTA','XMR','EOS','NEO','ZEC',
-		 'BTS','QTUM','USDT','STEEM','VERI','WAVES','ICN','SC','BCN','GNO','LSK',
-		 'GNT','REP','DOGE','SNT','XLM','GBYTE','DCR','FCT','DGB','MAID','GAME',
-		 'DGD','OMG','ARDR','MCAP','BAT','PPT','PIVX','NXT']
+coins = set()
+[[coins.add(coin) for coin in ticker.split('/')] for ticker in tickers]
+coins = list(coins)
 
 # Since we can't pull BTC/BTC, use BTC/USDT ticker.  Otherwise, use coin/BTC as ticker
-tickers = ['BTC/USDT']
-[tickers.append(coin + '/BTC') for coin in coins[1:]]
+tickers = ['BTC/USDT'
+		   if coin == 'BTC'
+		   else coin + '/BTC'
+		   for coin in coins]
+
+# pull epoch dates used for market caps
+market_cap = pd.read_csv(os.getcwd() + '/backtests/historical market cap.csv')
+dates = market_cap['date'] * 1000.0
+
+data = np.array(exchange.fetch_ohlcv('BTC/USDT'))
+
+test = []
+for day, price in data[:, :2]:
+	if min(dates) <= day <= max(dates):
+		test.append([day, price])
+
+
+len(test)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # Use DOGE/BTC as basis to pull dates, because DOGE
 dates = []
