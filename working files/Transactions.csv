@@ -1,2 +1,2 @@
-﻿trade_id,rebalance_id,date,side,ticker1,ticker2,quantity,dollar_value,fees,single_trade
-1,1,13-Aug,sell,test1,test2,50,100,0.25,TRUE
+trade_id	rebalance_id	date	side	ticker1	ticker2	quantity	dollar_value	fees	single_trade
+									

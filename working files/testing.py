@@ -3,11 +3,12 @@ import numpy as np
 import ccxt
 import os
 from datetime import datetime
-import pprint
 
 # 9/2/18
-transactions = pd.read_csv(os.getcwd() + '/transactions.csv')
+transactions = pd.read_csv(os.getcwd() + '/working files/transactions.csv')
 rebalance_id = max(transactions['rebalance_id']) + 1
+datetime.now()
+
 
 with open('C:/Users/Carter Carlson/Documents/Administrative/api.txt', 'r') as f:
     api = f.readlines()
@@ -26,6 +27,7 @@ wallet = pd.DataFrame(exchange.fetchBalance()['info']['balances'])
 quantities = []
 quantities = wallet.loc[wallet['free'] != '0.00000000']['free'].tolist()
 quantities = [float(i) for i in quantities]
+# quantities = [float(i) for i in list(wallet.loc[wallet['free'] != '0.00000000', 'free'])]
 coins = wallet.loc[wallet['free'].astype(float) > .1, 'asset'].tolist()
 
 
@@ -33,12 +35,16 @@ btc_price = exchange.fetch_ticker('BTC/USDT')['ask']
 
 prices = []
 for coin in coins:
-	# [prices.append(exchange.fetch_ticker(coin + '/BTC')['ask'] * btc_price) for coin in coins if coin != 'BTC' else prices.append(btc_price)]
-	# prices.append([float(exchange.fetch_ticker(coin + '/BTC')['info']['lastPrice']) * btc_ratio for coin in coins if coin != 'BTC' else btc_price])
 	if coin == 'BTC':
 		prices.append(btc_price)
 	else:
 		prices.append(exchange.fetch_ticker(coin + '/BTC')['ask'] * btc_price)
+
+[prices.append(btc_price) \
+if coin == 'BTC' \
+else prices.append(exchange.fetch_ticker(coin + '/BTC')['ask'] * btc_price) \
+for coin in coins]
+
 dollar_values = np.multiply(quantities, prices).tolist()
 weights = np.divide(dollar_values, sum(dollar_values))
 
@@ -48,17 +54,18 @@ Y1. analyze threshold								- done
 	a. decide if the trade is sell or buy			- done
 	b. get weight to sell/buy 						- done
 	c. convert weight to proper coin quantity		- done
-3. document trade									-
+3. document trade									- done
 4. update quantities/weights/dollar values			-
 '''
 
 avg_weight = 1/len(coins)
 thresh = .02
 
+# NOTE: do I want to use this line for loop?  or line below?
 while max(weights) - min(weights) > 2 * avg_weight * thresh:
 	weight_to_move = min([avg_weight-min(weights), max(weights)-avg_weight])
 	dollar_amt = weight_to_move * sum(dollar_values)
-	fees = dollar_amt * .0025
+	fee = dollar_amt * .0025
 
 	light_coin, heavy_coin = coins[weights.argmin()], coins[weights.argmax()]
 	ratios = {light_coin + '/' + heavy_coin, heavy_coin + '/' + light_coin}
@@ -80,17 +87,20 @@ while max(weights) - min(weights) > 2 * avg_weight * thresh:
 		quantity = dollar_amt / prices[coins.index(numer)]
 		exchange.create_order(t, 'market', s, quantity)
 
+		trade_id = transactions['trade_id'][len(transactions) - 1]
+		date = str(datetime.now())
 
-
-
-
-
-quantity = round(weight_to_move * data['dollar_value'].sum() / data[data['symbol'] == order[0][:order[0].find('/')]]['price'].values[0], 5)
-    print(exchange.create_order(order[0], 'market', order[1], quantity))
-
-if len(order) > 2:
-        quantity = round(weight_to_move * data['dollar_value'].sum() / data[data['symbol'] == order[2][:order[2].find('/')]]['price'].values[0], 5)
-        print(exchange.create_order(order[2], 'market', order[3], quantity))
+		transactions.append({
+							 'trade_id':trade_id,
+							 'rebalance_id':rebalance_id,
+							 'date':str(datetime.now()),
+							 'ticker1':numer,
+							 'ticker2':denom,
+							 'quantity':quantity,
+							 'dollar_value':dollar_amt,
+							 'fees':fee,
+							 'single_trade':single_trade
+							 }, ignore_index=True)
 
 
 ---------------------------------------------------------------------------------------------------

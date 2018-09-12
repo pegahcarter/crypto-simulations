@@ -6,7 +6,6 @@ import os
 import statistics
 from sklearn.ensemble import RandomForestClassifier
 import seaborn as sns
-
 %matplotlib inline
 
 folder = os.getcwd() + '/backtests/10/10_'
@@ -25,7 +24,6 @@ end2 = test2[len(test2)-1, :]
 result = (end2-end1) / end1
 plt.hist(result, bins=25)
 plt.show()
-
 
 # average performance difference over time
 avg_hodl = list(sim_hodl.mean(axis=1))
@@ -55,7 +53,7 @@ for i in range(2,11,2):
 # -----------------------------------------------------------------------
 # Enginering features from column names
 folder = os.getcwd() + '/backtests/10/10_'
-historical_data = pd.read_csv(os.getcwd() + '/historical prices.csv')
+historical_data = pd.read_csv(os.getcwd() + '/backtests/historical prices.csv')
 coins = historical_data.columns.values[1:]
 file1 = pd.read_csv(folder + 'HODL.csv')
 file2 = pd.read_csv(folder + 'rebalanced.csv')
@@ -63,7 +61,6 @@ dates = file1['date'].tolist()
 
 sim_hodl = np.array(file1[file1.columns[1:]])
 sim_rebalance = np.array(file2[file2.columns[1:]])
-sim_hodl[len(sim_hodl)-1]
 
 # Create dataframe with coin names as columns
 df = pd.DataFrame(columns=coins)
@@ -102,7 +99,6 @@ plt.barh(pos, feature_importance[sorted_features], align='center')
 plt.yticks(pos, X.columns[sorted_features])
 plt.show()
 
-
 # heatmap of variables
 X = historical_data[coins]
 correlations = X.corr()
@@ -119,7 +115,6 @@ sdev = dict()
 for col in vol:
 	sdev[col] = round(statistics.stdev(vol[col]), 3)
 
-
 # Make a dataset with XLM and one without - compare performance
 xlm_yes = [l for l in cols if 'XLM' in l]
 xlm_no = [l for l in cols if 'XLM' not in l]
@@ -129,9 +124,6 @@ file3 = pd.read_csv(os.getcwd() + '/backtests/10/10_summary.csv')
 xlm_yes_df = file3.loc[file3['portfolio'].isin(xlm_yes)]
 xlm_no_df = file3.loc[file3['portfolio'].isin(xlm_no)]
 
-file1 = pd.read_csv(folder + 'HODL.csv')
-file2 = pd.read_csv(folder + 'rebalanced.csv')
-
 for a in [xlm_yes_df, xlm_no_df]:
 	diffs = a['end_price_rebalanced'] - a['end_price_HODL']
 	pos_returns = diffs[diffs>0]
@@ -139,9 +131,12 @@ for a in [xlm_yes_df, xlm_no_df]:
 
 	return_vs_hodl = diffs.mean() / a['end_price_HODL'].mean()
 
-	print('\n\n\nAverage hodl result: ', round(a['end_price_HODL'].mean(), 2))
+	print('\nAverage hodl result: ', round(a['end_price_HODL'].mean(), 2))
 	print('Average rebalanced result: ', round(a['end_price_rebalanced'].mean(), 2))
 	print('# rebalance sims that outperformed: ', len(pos_returns))
 	print('# rebalance sims that underperformed: ', len(neg_returns))
 	print('Percent of rebalance sims to outperform HODL: ', round((len(pos_returns)/(len(pos_returns) + len(neg_returns))),2))
 	print('Avg rebalance performance compared to HODL', round(return_vs_hodl, 3))
+
+# Find max and min values of each coin in timeframe
+df = historical_data[coins]
