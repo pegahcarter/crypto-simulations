@@ -8,6 +8,7 @@ import inspect
 filename = inspect.getframeinfo(inspect.currentframe()).filename
 path = os.path.dirname(os.path.abspath(filename)) + '/backtests/'
 historical_prices = pd.read_csv(path + 'historical prices.csv')
+sim_dates = list(historical_prices['date'])
 coins = historical_prices.columns.tolist()[1:]
 
 # get date ranges used for simulations
@@ -29,7 +30,8 @@ start_date = cap_diffs.index(np.median(cap_diffs))
 
 # Limit dataframe dates to the date range
 data = np.array(historical_prices[coins])
-data = data[start_date:start_date + 366]
+data = data[start_date:start_date + 365]
+sim_dates = sim_dates[start_date:start_date + 365]
 
 # Start with $5000 of Bitcoin at day 0 price
 start_amt = 5000
@@ -37,7 +39,7 @@ start_amt = 5000
 # Simulate 2, 4, 6, 8, and 10 coins
 for num_coins in range(2,11,2):
 	amt_each = start_amt / num_coins
-	simulations = pd.DataFrame()
+	simulations = pd.DataFrame(index=sim_dates)
 
 	for sim_num in range(1000):
 		random_list = random.sample(range(len(coins)-1), num_coins)

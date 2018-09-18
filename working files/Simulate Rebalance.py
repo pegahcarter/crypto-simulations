@@ -6,26 +6,46 @@ import os
 import time
 import inspect
 
+# Retrieve location of historical prices file
+filename = inspect.getframeinfo(inspect.currentframe()).filename
+path = os.path.dirname(os.path.abspath(filename)) + '/backtests/'
+historical_prices = pd.read_csv(path + 'historical prices.csv')
+sim_dates = list(historical_prices['date'])
+coins = historical_prices.columns.tolist()[1:]
+
+# Exclude date column from historical prices
+historical_prices = np.array(historical_prices[coins])
+
+# get date ranges used for simulations
+historical_cap = pd.read_csv(path + 'historical market cap.csv')
+historical_cap = np.array(historical_cap)
+start_dates = historical_cap[:len(historical_cap) - 365]
+end_dates = historical_cap[365:]
+
+# Subtract the ending market caps from each other, located in the 4th column
+cap_diffs = list(end_dates[:, 3] - start_dates[:, 3])
+
+# Make sure there's an odd number of dates, so the median value can be indexed
+if len(cap_diffs) % 2 == 0:
+	cap_diffs.pop(len(cap_diffs)-1)
+
+# Start date for simulations
+start_date = cap_diffs.index(np.median(cap_diffs))
+
+# Limit dataframe to specified date range
+historical_prices = historical_prices[start_date:start_date + 366]
+sim_dates = sim_dates[start_date:start_date + 366]
+
+
 # Retrieve all current tickers on exchange
 exchange = ccxt.bittrex()
 tickers = set()
 [tickers.add(ticker) for ticker in exchange.fetch_tickers()]
 
-# Retrieve historical price data
-filename = inspect.getframeinfo(inspect.currentframe()).filename
-path = os.path.dirname(os.path.abspath(filename)) + '/backtests/'
-data = pd.read_csv(path + 'historical prices.csv')
-
-coins = list(data.columns.values)
-dates = list(data['date'])
-
-# Exclude date column from historical prices
-historical_prices = np.array(data[coins][data.columns.values[1:]])
-
 start_amt = 5000
 thresh = .05
 
-for num_coins in range(2,5,2):
+for num_coins in range(2,11,2):
 
 	# Divide up the start amount into how much $ per coin
 	avg_weight = 1/num_coins
@@ -105,10 +125,10 @@ for num_coins in range(2,5,2):
 		rebalance_simulations[num_simulation] = daily_totals
 		num_simulation += 1
 
-	rebalance_simulations = pd.DataFrame(np.transpose(rebalance_simulations), columns=cols, index=dates)
-	simulation_summary = pd.DataFrame(simulation_summary,columns=['portfolio','total_fees','num_trades','num_trades_saved','end_price_HODL','end_price_rebalanced'])
-
+	rebalance_simulations = pd.DataFrame(np.transpose(rebalance_simulations), columns=cols, index=sim_dates)
 	rebalance_simulations.to_csv(path + 'rebalanced.csv')
+
+	simulation_summary = pd.DataFrame(simulation_summary,columns=['portfolio','total_fees','num_trades','num_trades_saved','end_price_HODL','end_price_rebalanced'])
 	simulation_summary.to_csv(path + 'summary.csv', index=False)
 
 # ------------------------------------------------------------------------------------------------------------------------------------
