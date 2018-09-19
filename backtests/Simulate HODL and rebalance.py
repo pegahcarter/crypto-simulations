@@ -46,7 +46,7 @@ def simulate_rebalance(df):
 
 	for col, coin_list, coin_list_index in zip(cols, coin_lists, coin_lists_indexes):
 
-		fees, trade_count, trades_eliminated = 0, 0, 0
+		fees, trade_count, trades_eliminated, taxes_owed = 0, 0, 0, 0
 		daily_totals = [start_amt]
 
 		# Reduce historical_prices array to only the coins used in the simulation
@@ -54,6 +54,8 @@ def simulate_rebalance(df):
 
 		# Calculate starting coin amounts
 		coin_amts = amt_each / small_historical_prices[0]
+
+		purchase_prices = small_historical_prices[0].tolist()
 
 		# Simulate each day
 		for num_day in range(1,len(historical_prices)):
@@ -83,9 +85,20 @@ def simulate_rebalance(df):
 				dollar_amt = weight_to_move * total_dollar_value
 				fees += (dollar_amt * rate)
 
+				# Get coin quantities to buy/sell based on current market price
+				l_quantity = dollar_amt / small_historical_prices[num_day, l_index]
+				h_quantity = dollar_amt / small_historical_prices[num_day, h_index] * (1 + rate)
+
+				price_difference = small_historical_prices[num_day, h_index] - purchase_prices[h_index]
+
+				taxes_owed += (price_difference * h_quantity * 0.25)
+
+				# adjust avg purchase price for bought coin
+				purchase_prices[l_index] = (purchase_prices[l_index] * coin_amts[l_index] + small_historical_prices[num_day, l_index] * l_quantity)/(coin_amts[l_index] + l_quantity)
+
 				# Adjust coin quantities
-				coin_amts[l_index] += dollar_amt / small_historical_prices[num_day, l_index]
-				coin_amts[h_index] -= dollar_amt / small_historical_prices[num_day, h_index] * (1 + rate)
+				coin_amts[l_index] += l_quantity
+				coin_amts[h_index] -= h_quantity
 
 			# document total portfolio value on that day
 			daily_totals.append(np.dot(small_historical_prices[num_day], coin_amts))
@@ -93,14 +106,14 @@ def simulate_rebalance(df):
 		# Document important features of the simulations
 		end_price_HODL = hodl_simulations[len(hodl_simulations)-1, num_simulation]
 		end_price_rebalanced = daily_totals[len(daily_totals)-1]
-		simulation_summary[num_simulation] = [col, fees, trade_count, trades_eliminated, end_price_HODL, end_price_rebalanced]
+		simulation_summary[num_simulation] = [col, fees, taxes_owed, trade_count, trades_eliminated, end_price_HODL, end_price_rebalanced]
 		rebalance_simulations[num_simulation] = daily_totals
 		num_simulation += 1
 
 	rebalance_simulations = pd.DataFrame(np.transpose(rebalance_simulations), columns=cols, index=sim_dates)
 	rebalance_simulations.to_csv(path + str(num_coins) + '/' + str(num_coins) + '_rebalanced.csv')
 
-	simulation_summary = pd.DataFrame(simulation_summary,columns=['portfolio','total_fees','num_trades','num_trades_saved','end_price_HODL','end_price_rebalanced'])
+	simulation_summary = pd.DataFrame(simulation_summary,columns=['portfolio','total_fees','taxes_owed','num_trades','num_trades_saved','end_price_HODL','end_price_rebalanced'])
 	simulation_summary.to_csv(path + str(num_coins) + '/' + str(num_coins) + '_summary.csv', index=False)
 
 
@@ -146,13 +159,13 @@ if __name__ == '__main__':
 	# Start with $5000 of Bitcoin at day 0 price
 	start_amt = 5000
 
-	for num_coins in range(4,5,2):
+	for num_coins in range(2,11,2):
 
 		amt_each = start_amt / num_coins
 
 		print('Simulating HODL of ' + str(num_coins) + ' coins...')
-		df = simulateHODL()
+		df = simulate_HODL()
 		print('Finished\n')
-		print('Simulating rebalance of ' str(num_coins) + ' coins...')
+		print('Simulating rebalance of ' + str(num_coins) + ' coins...')
 		simulate_rebalance(df)
 		print('Finished\n')
