@@ -12,6 +12,11 @@ from pymongo import MongoClient
 from pathlib import Path
 
 
+from update_transactions import update_csv_transactions
+from update_transactions import update_sql_transactions
+from update_transactions import update_mongo_transactions
+
+
 def main():
 
 	csv_transactions = True
@@ -43,6 +48,7 @@ def main():
 						trade_id,				# trade_id
 						0, 						# rebalance_id
 						str(datetime.now()),	# date
+						coin,					# coin
 						'buy', 					# side
 						coin + '/USD',			# ratio
 						price, 					# price
@@ -68,6 +74,7 @@ def main():
 						'trade_id',
 						'rebalance_id',
 						'date',
+						'coin',
 						'side',
 						'ratio',
 						'price',
@@ -100,6 +107,7 @@ def main():
 					session.add(Transactions(
 						rebalance_id = 0,
 						date = str(datetime.now()),
+						coin = coin,
 						side = 'buy',
 						ratio = coin + '/USD',
 						price = price,
@@ -137,13 +145,20 @@ def main():
 		# End of initialize_dbs function
 
 	def update_transactions(csv, sql, mongo):
+		folder = os.getcwd() + '/dbs/'
 		if csv:
+			update_csv_transactions(folder + 'csv/')
 
 		if sql:
+			update_sql_transactions(folder + 'sql/')
+
 
 		if mongo:
+			update_mongo_transactions(folder + 'mongo/')
 
 		# end of update_transactions function
+
+
 
 	# Function to update transaction history
 	def update_csv(side, ticker1, ticker2, quantity, dollar_value):
