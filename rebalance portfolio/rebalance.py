@@ -4,7 +4,7 @@ import ccxt
 import os
 import sys
 from datetime import datetime
-
+from apscheduler.schedulers.blocking import BlockingScheduler
 
 def main():
 	# Function to update transaction history
@@ -65,7 +65,7 @@ def main():
 	transaction_history = pd.read_csv('transactions.csv')
 
 	# note: You'll have to change this path to the path of your API text file
-	with open('C:/Users/Carter Carlson/Documents/Administrative/api.txt', 'r') as f:
+	with open('C:/Users/Carter/Documents/Administrative/api.txt', 'r') as f:
 		api = f.readlines()
 		apiKey = api[0][:len(api[0])-1]
 		secret = api[1][:len(api[1])]
@@ -90,7 +90,7 @@ def main():
 	data = update_data(coins)
 
 	n = 1/(len(coins))
-	thresh = .01
+	thresh = .02
 
 	# If there's no transaction history, add all coins in portfolio as initial transactions
 	if len(transaction_history) == 0:
@@ -144,7 +144,13 @@ def main():
 		data = update_data(coins)
 
 	print('Rebalance complete.  # of trades executed: {}'.format(trade_count))
-	transaction_history.to_csv('transactions.csv')
+	print('\n', data)
+
+	if trade_count > 0:
+		transaction_history.to_csv('transactions.csv', index=False)
 
 if __name__ == '__main__':
 	main()
+	#scheduler = BlockingScheduler()
+	#scheduler.add_job(main, 'interval', minutes=10)
+	#scheduler.start()
