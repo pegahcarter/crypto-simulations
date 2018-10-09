@@ -2,6 +2,9 @@ from bs4 import BeautifulSoup
 import requests
 import pymongo
 
+def test():
+	return 1
+
 # Initialize PyMongo to work with MongoDB
 conn = 'mongodb://localhost:27107'
 client = pymongo.MongoClient(conn)
@@ -19,7 +22,8 @@ db.transaction_db.insert_one(
         'ticker1': 'BTC',
         'ticker2': 'USD',
         'quantity': 1.000,
-        'dollar_value': 5,000,
+        'dollar_value': 5000,
         'fees': 12.50
     }
 )
+'''
