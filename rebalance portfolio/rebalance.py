@@ -4,11 +4,149 @@ import ccxt
 import os
 import sys
 from datetime import datetime
-from apscheduler.schedulers.blocking import BlockingScheduler
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from dbs.sql.setup import Transactions, Base
+import sqlite3
+from pymongo import MongoClient
+from pathlib import Path
+
 
 def main():
+
+	csv_transactions = True
+	sql_transactions = True
+	mongo_transactions = True
+
+	def pull_coin_info(coin):
+		p = data[data['symbol'] == coin]['price'].values[0]
+		q = data[data['symbol'] == coin]['quantity'].values[0]
+		dv = p * q
+		return p, q, dv
+
+	def initialize_dbs(csv, sql, mongo):
+		if csv:
+			csv_db = Path(os.getcwd() + '/dbs/csv/transactions.csv')
+			if not csv_db.isfile():
+				portfolio = []
+				transactions = []
+				trade_id = 1
+				for coin in coins:
+					price, quantity, dollar_value = pull_coin_info(coin)
+					portfolio.append([
+						coin,					# coin
+						price,					# current_price
+						quantity,				# quantity
+						dollar_value			# dollar_value
+					])
+					transactions.append([
+						trade_id,				# trade_id
+						0, 						# rebalance_id
+						str(datetime.now()),	# date
+						'buy', 					# side
+						coin + '/USD',			# ratio
+						price, 					# price
+						quantity, 				# quantity
+						dollar_value, 			# dollar_value
+						dollar_value * 0.0075	# fees
+					])
+					trade_id += 1
+
+				portfolio_pd = pd.DataFrame(
+					portfolio,
+					columns = [
+						'coin',
+						'current_price',
+						'quantity',
+						'dollar_value'
+					]
+				)
+
+				transactions_pd = pd.DataFrame(
+					transactions,
+					columns = [
+						'trade_id',
+						'rebalance_id',
+						'date',
+						'side',
+						'ratio',
+						'price',
+						'quantity'
+						'dollar_value',
+						'fees'
+					]
+				)
+
+				portfolio_pd.to_csv(os.getcwd() + '/dbs/csv/portfolio.csv')
+				transactions_pd.to_csv(os.getcwd() + '/dbs/csv/transactions.csv')
+
+		if sql:
+			sql_db = Path(os.getcwd() + '/dbs/sql/rebalance.db')
+			if not sql_db.is_file():
+				import dbs.sql.setup
+				engine = create_engine('sqlite:///dbs/sql/rebalance.db')
+				Base.metadata.bind = engine
+				DBSession = sessionmaker(bind=engine)
+				session = DBSession()
+				for coin in coins:
+					price, quantity, dollar_value = pull_coin_info(coin)
+					session.add(Portfolio(
+						coin = coin,
+						current_price = price,
+						quantity = quantity,
+						dollar_value = dollar_value
+					))
+					session.commit()
+					session.add(Transactions(
+						rebalance_id = 0,
+						date = str(datetime.now()),
+						side = 'buy',
+						ratio = coin + '/USD',
+						price = price,
+						quantity = quantity,
+						dollar_value = dollar_value
+						fees = dollar_value * 0.0075
+					))
+					session.commit()
+
+
+		if mongo:
+			mongo_db = Path(os.getcwd() + '/dbs/mongo/rebalance.db')
+			if not mongo_db:
+				client = MongoClient()
+				mongo_db = client['rebalance']
+				for coin in coins:
+					price, quantity, dollar_value = pull_coin_info(coins)
+					mongo_db.insert_one({
+						coin: {
+							'quantity': quantity,
+							'current_price': price,
+							'dollar_value': dollar_value,
+							'transactions': {
+								'trade_id': 0,
+								'rebalance_id': 0,
+								'date': date,
+								'side': 'buy',
+								'coin_used_to_buy': 'USD',
+								'price': price,
+								'quantity': quantity,
+								'dollar_value': dollar_value,
+								'fees': dollar_value * 0.0075
+							}
+					})
+		# End of initialize_dbs function
+
+	def update_transactions(csv, sql, mongo):
+		if csv:
+
+		if sql:
+
+		if mongo:
+
+		# end of update_transactions function
+
 	# Function to update transaction history
-	def update_transactions(side, ticker1, ticker2, quantity, dollar_value):
+	def update_csv(side, ticker1, ticker2, quantity, dollar_value):
 		df = transaction_history.append({
 			'trade_id':trade_id,
 			'rebalance_id':rebalance_id,
@@ -89,6 +227,8 @@ def main():
 
 	data = update_data(coins)
 
+	initialize_dbs()
+
 	n = 1/(len(coins))
 	thresh = .02
 
@@ -151,6 +291,3 @@ def main():
 
 if __name__ == '__main__':
 	main()
-	#scheduler = BlockingScheduler()
-	#scheduler.add_job(main, 'interval', minutes=10)
-	#scheduler.start()
