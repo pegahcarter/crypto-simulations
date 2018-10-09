@@ -1,8 +1,8 @@
-# Simulate/rebalance your cryptocurrency portfolio
+## Simulate/rebalance your cryptocurrency portfolio
 
+### Contents
 
-## Contents
-
+---
 
 ### rebalance portfolio
 Files to start rebalancing your own crypto portfolio.  Note: code for API interaction
@@ -14,7 +14,6 @@ functionality to save transactions in SQL and mongodb.  Once implemented, users 
 be able to choose which format they want to store their transactions, with the choice
 to save in multiple formats.
 
----
 ### backtests
 Python files used to:
 * Retrieve historical price data
@@ -23,6 +22,5 @@ Python files used to:
 
 Also contains historical price data and simulation results.
 
----
 ### working files
 Experimental files for testing new ideas/strategies.
