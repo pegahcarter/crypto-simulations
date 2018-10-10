@@ -11,17 +11,18 @@ import sqlite3
 from pymongo import MongoClient
 from pathlib import Path
 
-
 from update_transactions import update_csv_transactions
 from update_transactions import update_sql_transactions
 from update_transactions import update_mongo_transactions
 
+from initialize_dbs import InitalizeDB
+
 
 def main():
 
-	csv_transactions = True
-	sql_transactions = True
-	mongo_transactions = True
+	csv = True
+	sql = True
+	mongo = True
 
 	def pull_coin_info(coin):
 		p = data[data['symbol'] == coin]['price'].values[0]
@@ -29,153 +30,34 @@ def main():
 		dv = p * q
 		return p, q, dv
 
-	def initialize_dbs(csv, sql, mongo):
-		if csv:
-			csv_db = Path(os.getcwd() + '/dbs/csv/transactions.csv')
-			if not csv_db.isfile():
-				portfolio = []
-				transactions = []
-				trade_id = 1
-				for coin in coins:
-					price, quantity, dollar_value = pull_coin_info(coin)
-					portfolio.append([
-						coin,					# coin
-						price,					# current_price
-						quantity,				# quantity
-						dollar_value			# dollar_value
-					])
-					transactions.append([
-						trade_id,				# trade_id
-						0, 						# rebalance_id
-						str(datetime.now()),	# date
-						coin,					# coin
-						'buy', 					# side
-						coin + '/USD',			# ratio
-						price, 					# price
-						quantity, 				# quantity
-						dollar_value, 			# dollar_value
-						dollar_value * 0.0075	# fees
-					])
-					trade_id += 1
+	def initialize_dbs(**args):
+		Initialize = InitializeDB()
+		folder_paths = [
+			os.getcwd() + '/dbs/csv/transactions.csv',
+			os.getcwd() + '/dbs/sql/rebalance.db',
+			os.getcwd() + '/dbs/mongo/rebalance.db'
+		]
+		for db in range(len(args)):
+			if db_enabled[db] and not Path(folder_paths[db]).is_file():
+				if db == 1:
+					import dbs.sql.setup
 
-				portfolio_pd = pd.DataFrame(
-					portfolio,
-					columns = [
-						'coin',
-						'current_price',
-						'quantity',
-						'dollar_value'
-					]
-				)
+				func = getattr(Initialize, 'initialize_' + args[db])
+				func()
 
-				transactions_pd = pd.DataFrame(
-					transactions,
-					columns = [
-						'trade_id',
-						'rebalance_id',
-						'date',
-						'coin',
-						'side',
-						'ratio',
-						'price',
-						'quantity'
-						'dollar_value',
-						'fees'
-					]
-				)
-
-				portfolio_pd.to_csv(os.getcwd() + '/dbs/csv/portfolio.csv')
-				transactions_pd.to_csv(os.getcwd() + '/dbs/csv/transactions.csv')
-
-		if sql:
-			sql_db = Path(os.getcwd() + '/dbs/sql/rebalance.db')
-			if not sql_db.is_file():
-				import dbs.sql.setup
-				engine = create_engine('sqlite:///dbs/sql/rebalance.db')
-				Base.metadata.bind = engine
-				DBSession = sessionmaker(bind=engine)
-				session = DBSession()
-				for coin in coins:
-					price, quantity, dollar_value = pull_coin_info(coin)
-					session.add(Portfolio(
-						coin = coin,
-						current_price = price,
-						quantity = quantity,
-						dollar_value = dollar_value
-					))
-					session.commit()
-					session.add(Transactions(
-						rebalance_id = 0,
-						date = str(datetime.now()),
-						coin = coin,
-						side = 'buy',
-						ratio = coin + '/USD',
-						price = price,
-						quantity = quantity,
-						dollar_value = dollar_value
-						fees = dollar_value * 0.0075
-					))
-					session.commit()
-
-
-		if mongo:
-			mongo_db = Path(os.getcwd() + '/dbs/mongo/rebalance.db')
-			if not mongo_db:
-				client = MongoClient()
-				mongo_db = client['rebalance']
-				for coin in coins:
-					price, quantity, dollar_value = pull_coin_info(coins)
-					mongo_db.insert_one({
-						coin: {
-							'quantity': quantity,
-							'current_price': price,
-							'dollar_value': dollar_value,
-							'transactions': {
-								'trade_id': 0,
-								'rebalance_id': 0,
-								'date': date,
-								'side': 'buy',
-								'coin_used_to_buy': 'USD',
-								'price': price,
-								'quantity': quantity,
-								'dollar_value': dollar_value,
-								'fees': dollar_value * 0.0075
-							}
-					})
-		# End of initialize_dbs function
+	# End of initialize_dbs function
 
 	def update_transactions(csv, sql, mongo):
 		folder = os.getcwd() + '/dbs/'
 		if csv:
-			update_csv_transactions(folder + 'csv/')
+			update_csv_transactions()
 
 		if sql:
-			update_sql_transactions(folder + 'sql/')
-
+			update_sql_transactions()
 
 		if mongo:
-			update_mongo_transactions(folder + 'mongo/')
-
-		# end of update_transactions function
-
-
-
-	# Function to update transaction history
-	def update_csv(side, ticker1, ticker2, quantity, dollar_value):
-		df = transaction_history.append({
-			'trade_id':trade_id,
-			'rebalance_id':rebalance_id,
-			'date':str(datetime.now()),
-			'side': side,
-			'ticker1':ticker1,
-			'ticker2':ticker2,
-			'quantity':quantity,
-			'dollar_value': dollar_value,
-			'fees':dollar_value * .0075,
-			}, ignore_index=True)
-
-		return df
-
+			update_mongo_transactions()
+	# end of function
 
 	# Function to determine ticker for trade and side of trade
 	def rebalance_order(coin1, coin2):
@@ -215,8 +97,6 @@ def main():
 		return df
 
 
-	transaction_history = pd.read_csv('transactions.csv')
-
 	# note: You'll have to change this path to the path of your API text file
 	with open('C:/Users/Carter/Documents/Administrative/api.txt', 'r') as f:
 		api = f.readlines()
@@ -242,7 +122,9 @@ def main():
 
 	data = update_data(coins)
 
-	initialize_dbs()
+	db_names = ['csv', 'sql', 'mongo']
+	db_enabled = [csv, sql, mongo]
+	initialize_dbs(db_names)
 
 	n = 1/(len(coins))
 	thresh = .02
