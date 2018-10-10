@@ -6,7 +6,7 @@ class Update_Transactions:
 	def __init__(self, name):
         self.name = name
 
-	def update_csv_transactions(self):
+	def update_csv_transactions():
 		file_path = folder + '/csv/transactions.csv'
 		transaction_db = pd.read_csv(file_path)
 
@@ -25,7 +25,7 @@ class Update_Transactions:
 	# End of Function
 
 
-	def update_sql_transactions(self):
+	def update_sql_transactions():
 		session.add(Transactions(
 			trade_id = trade_id,
 			rebalance_id = rebalance_id,

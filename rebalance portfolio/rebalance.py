@@ -32,18 +32,16 @@ def main():
 
 	def initialize_dbs(**args):
 		Initialize = InitializeDB()
-		folder_paths = [
-			os.getcwd() + '/dbs/csv/transactions.csv',
-			os.getcwd() + '/dbs/sql/rebalance.db',
-			os.getcwd() + '/dbs/mongo/rebalance.db'
-		]
-		for db in range(len(args)):
-			if db_enabled[db] and not Path(folder_paths[db]).is_file():
-				if db == 1:
-					import dbs.sql.setup
 
-				func = getattr(Initialize, 'initialize_' + args[db])
-				func()
+		if csv and not Path(os.getcwd() + '/dbs/csv/transactions.csv'):
+			initialize_csv()
+
+		if sql and not Path(os.getcwd() + '/dbs/sql/rebalance.db'):
+			import dbs.sql.setup
+			initialize_sql()
+
+		if mongo and not Path(os.getcwd() + '/dbs/mongo/rebalance.db'):
+			initialize_mongo()
 
 	# End of initialize_dbs function
 
