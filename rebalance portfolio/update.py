@@ -1,12 +1,9 @@
-import pandas as pd
-import sqlite3
+def Update(db1, db2, db3):
 
-class Update_Transactions:
+	def update_csv():
+		if not db1:
+			return
 
-	def __init__(self, name):
-        self.name = name
-
-	def update_csv_transactions():
 		file_path = folder + '/csv/transactions.csv'
 		transaction_db = pd.read_csv(file_path)
 
@@ -25,7 +22,10 @@ class Update_Transactions:
 	# End of Function
 
 
-	def update_sql_transactions():
+	def update_sql():
+		if not db2:
+			return
+
 		session.add(Transactions(
 			trade_id = trade_id,
 			rebalance_id = rebalance_id,
@@ -33,6 +33,7 @@ class Update_Transactions:
 			coin = coin,
 			side = side,
 			ratio = ratio,
+			price = dollar_value/quantity
 			quantity = quantity,
 			dollar_value = dollar_value,
 			fees = dollar_value * .0075
@@ -41,10 +42,30 @@ class Update_Transactions:
 	# End of function
 
 
-	def update_mongo_transactions(self):
+	def update_mongo():
+		if not db3:
+			return
 
+		conn = 'mongodb://localhost:27017'
+		client = MongoClient(conn)
+		db = client.transactions
 
-
-
-
+		db.insert_one({
+			'trade_id': trade_id,
+			'rebalance_id': rebalance_id,
+			'date': str(datetime.now()),
+			'side': side,
+			'ratio': ratio,
+			'price': dollar_value/quantity,
+			'quantity': quantity,
+			'dollar_value': dollar_value,
+			'fees': dollar_value * 0.0075
+		})
 	# End of function
+
+	update_csv()
+	update_sql()
+	update_mongo()
+
+if __name__ == '__main__':
+	sys.exit('Error: do not run this program outside of rebalance.py')

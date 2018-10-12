@@ -11,28 +11,19 @@ from dbs.sql.setup import Transactions, Base
 import sqlite3
 from pymongo import MongoClient
 
-import initialize_dbs
-from update_transactions import update_csv_transactions, update_sql_transactions, update_mongo_transactions
+import initialize
+import update
+import sync
 
 def main():
+	if not csv and not sql and not mongo:
+		sys.exit('Error: select a database type and try again.')
 
 	def pull_coin_info(coin):
 		p = data[data['symbol'] == coin]['price'].values[0]
 		q = data[data['symbol'] == coin]['quantity'].values[0]
 		dv = p * q
 		return p, q, dv
-
-	def update_transactions(csv, sql, mongo):
-		folder = os.getcwd() + '/dbs/'
-		if csv:
-			update_csv_transactions()
-
-		if sql:
-			update_sql_transactions()
-
-		if mongo:
-			update_mongo_transactions()
-	# end of function
 
 	# Function to determine ticker for trade and side of trade
 	def rebalance_order(coin1, coin2):
@@ -45,7 +36,6 @@ def main():
 				return coin2 + '/' + coin1, 'buy'
 			except:
 				return coin1 + '/BTC', 'sell', coin2 + '/BTC', 'buy'
-
 
 	# Function that returns current portfolio values/weights
 	def update_data(coins):
@@ -71,9 +61,8 @@ def main():
 		df = df.sort_values('weight', ascending=False).reset_index(drop=True)
 		return df
 
-
 	# note: You'll have to change this path to the path of your API text file
-	with open('C:/Users/Carter/Documents/Administrative/api.txt', 'r') as f:
+	with open('some file.txt', 'r') as f:
 		api = f.readlines()
 		apiKey = api[0][:len(api[0])-1]
 		secret = api[1][:len(api[1])]
@@ -89,26 +78,28 @@ def main():
 		sys.exit('Error connecting to API socket.  Please ensure you are opening the \
 			   correct api text file and are not using a network proxy, and try again')
 
-
 	# Don't include coins with quantities less than .05 - helps ignore dust of coins
 	# Note: If you're holding less than .05 of a coin with your portfolio, or holding GAS,
 	# you'll need to modify the line below.
-	coins = [asset['asset'] for asset in balance['info']['balances'] if float(asset['free']) > 0.05 and asset['asset'] != 'GAS']
+	coins = [asset['asset']
+			 for asset in balance['info']['balances']
+			 if float(asset['free']) > 0.05 and asset['asset'] != 'GAS']
 
 	data = update_data(coins)
+
+	Initialize(csv, sql, mongo)
+	Update(csv, sql, mongo)
 
 	n = 1/(len(coins))
 	thresh = .02
 
 	# Execute trades until all coin weights in portfolio are within our threshold range
 	while data['weight'][0] - data['weight'][len(data) - 1] > 2 * n * thresh:
-		trade_id = transaction_history['trade_id'][len(transaction_history) - 1] + 1
 
 		order = rebalance_order(data['symbol'][0], data['symbol'][len(data) - 1])
 		weight_to_move = min([data['weight'][0] - n, n - data['weight'][len(data) - 1]])
 
 		for x in range(0,len(order),2):
-			trade_count += 1
 			ratio = order[x]
 			side = order[x + 1]
 			ticker1, ticker2 = ratio[:ratio.find('/')], ratio[ratio.find('/') + 1:]
@@ -120,13 +111,17 @@ def main():
 			except:
 				sys.exit('Error: please connect to a network without a proxy to execute trades.')
 
-			transaction_history = update_transactions(side, ticker1, ticker2, quantity, dollar_value)
+			Update(csv, sql, mongo)
+
+			# transaction_history = update_transactions(side, ticker1, ticker2, quantity, dollar_value)
 
 		balance = exchange.fetchBalance()
 		data = update_data(coins)
 
-	print('Rebalance complete.  # of trades executed: {}'.format(trade_count))
-	print('\n', data)
 
 if __name__ == '__main__':
+	csv = True
+	sql = True
+	mongo = False
 	main()
+	print('Rebalance complete)
