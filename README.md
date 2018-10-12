@@ -1,5 +1,11 @@
 ## Simulate/rebalance your cryptocurrency portfolio
 
+**CURRENT WORK IN PROGRESS**
+* Functionality to save transactions as a CSV, SQL, and/or MongoDB.
+* Ability to set frequency of rebalancing
+* There's only 1 table/collection to records transactions.  I want to add a summary 
+table/collection to show the portfolio coins, quantities, average cost, etc.
+
 ### Contents
 
 ---
@@ -9,10 +15,7 @@ Files to start rebalancing your own crypto portfolio.  Note: code for API intera
 is designed for Binance.  If you are using a difference exchange, code in 'rebalance.py'
 will need to be adjusted accordingly.
 
-Currently, transactions are only recorded in a CSV file.  I am working to include
-functionality to save transactions in SQL and mongodb.  Once implemented, users will
-be able to choose which format they want to store their transactions, with the choice
-to save in multiple formats.
+Currently, transactions are only recorded in CSV.
 
 ### backtests
 Python files used to:
@@ -23,4 +26,4 @@ Python files used to:
 Also contains historical price data and simulation results.
 
 ### working files
-Experimental files for testing new ideas/strategies.
+Experimental files for testing new ideas/strategies.  Adding TA to rebalancing?
