@@ -3,47 +3,24 @@ import numpy as np
 import ccxt
 import os
 import sys
+from pathlib import Path
 from datetime import datetime
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from dbs.sql.setup import Transactions, Base
 import sqlite3
 from pymongo import MongoClient
-from pathlib import Path
 
-from update_transactions import update_csv_transactions
-from update_transactions import update_sql_transactions
-from update_transactions import update_mongo_transactions
-
-from initialize_dbs import InitalizeDB
-
+import initialize_dbs
+from update_transactions import update_csv_transactions, update_sql_transactions, update_mongo_transactions
 
 def main():
-
-	csv = True
-	sql = True
-	mongo = True
 
 	def pull_coin_info(coin):
 		p = data[data['symbol'] == coin]['price'].values[0]
 		q = data[data['symbol'] == coin]['quantity'].values[0]
 		dv = p * q
 		return p, q, dv
-
-	def initialize_dbs(**args):
-		Initialize = InitializeDB()
-
-		if csv and not Path(os.getcwd() + '/dbs/csv/transactions.csv'):
-			initialize_csv()
-
-		if sql and not Path(os.getcwd() + '/dbs/sql/rebalance.db'):
-			import dbs.sql.setup
-			initialize_sql()
-
-		if mongo and not Path(os.getcwd() + '/dbs/mongo/rebalance.db'):
-			initialize_mongo()
-
-	# End of initialize_dbs function
 
 	def update_transactions(csv, sql, mongo):
 		folder = os.getcwd() + '/dbs/'
@@ -120,38 +97,8 @@ def main():
 
 	data = update_data(coins)
 
-	db_names = ['csv', 'sql', 'mongo']
-	db_enabled = [csv, sql, mongo]
-	initialize_dbs(db_names)
-
 	n = 1/(len(coins))
 	thresh = .02
-
-	# If there's no transaction history, add all coins in portfolio as initial transactions
-	if len(transaction_history) == 0:
-		trade_id, rebalance_id = 0, 0
-		transaction_history = pd.DataFrame(
-			columns = [
-				'trade_id',
-				'rebalance_id',
-				'date',
-				'side',
-				'ticker1',
-				'ticker2',
-				'quantity',
-				'dollar_value',
-				'fees'
-				]
-			)
-
-		for coin in coins:
-			temp = data[data['symbol'] == coin]
-			price, quantity = temp['price'].values[0], temp['quantity'].values[0]
-
-			transaction_history = update_transactions('buy', coin, 'USD', quantity, quantity * price)
-
-	trade_count = 0
-	rebalance_id = transaction_history['rebalance_id'][len(transaction_history) - 1] + 1
 
 	# Execute trades until all coin weights in portfolio are within our threshold range
 	while data['weight'][0] - data['weight'][len(data) - 1] > 2 * n * thresh:
@@ -180,9 +127,6 @@ def main():
 
 	print('Rebalance complete.  # of trades executed: {}'.format(trade_count))
 	print('\n', data)
-
-	if trade_count > 0:
-		transaction_history.to_csv('transactions.csv', index=False)
 
 if __name__ == '__main__':
 	main()

@@ -1,6 +1,15 @@
-class InitalizeDB:
+import sys
+import os
+import pandas as pd
+from dbs.sql.setup import Transactions, Base
+from pymongo import MongoClient
+from datetime import datetime
+from sqlalchemy import create_engine
 
+def Initialize(csv, sql, mongo):
 	def initialize_csv():
+		if Path(os.getcwd() + '/dbs/csv/transactions.csv') or not csv:
+			return
 
 		portfolio = []
 		transactions = []
@@ -55,9 +64,13 @@ class InitalizeDB:
 
 		portfolio_pd.to_csv('/dbs/csv/portfolio.csv')
 		transactions_pd.to_csv('/dbs/csv/transactions.csv')
-		# End of function
+	# End of function
 
 	def initialize_sql():
+		if Path(os.getcwd() + '/dbs/sql/rebalance.db') or not sql:
+			return
+
+		import dbs.sql.setup
 		engine = create_engine('sqlite:///dbs/sql/rebalance.db')
 		Base.metadata.bind = engine
 		DBSession = sessionmaker(bind=engine)
@@ -87,6 +100,9 @@ class InitalizeDB:
 	# End of function
 
 	def initialize_mongo():
+		if Path(os.getcwd() + '/dbs/mongo/rebalance.db') or not mongo:
+			return
+
 		client = MongoClient()
 		mongo_db = client['rebalance']
 		for coin in coins:
@@ -110,3 +126,14 @@ class InitalizeDB:
 				}
 			})
 	# End of function
+	initialize_csv()
+	initialize_sql()
+	initialize_mongo()
+
+if __name__ = '__main__':
+	sys.exit('Error: do not run this program separately from rebalace.py.')
+else:
+	csv = True
+	sql = True
+	mongo = True
+	Initialize(csv, sql, mongo)
