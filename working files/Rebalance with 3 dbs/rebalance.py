@@ -9,11 +9,15 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from dbs.sql.setup import Transactions, Base
 import sqlite3
+from pymongo import MongoClient
 
 import initialize
 import update
+import sync
 
 def main():
+	if not csv and not sql and not mongo:
+		sys.exit('Error: select a database type and try again.')
 
 	def pull_coin_info(coin):
 		p = data[data['symbol'] == coin]['price'].values[0]
@@ -83,7 +87,8 @@ def main():
 
 	data = update_data(coins)
 
-	Initialize()
+	Initialize(csv, sql, mongo)
+	Update(csv, sql, mongo)
 
 	n = 1/(len(coins))
 	thresh = .02
@@ -106,12 +111,17 @@ def main():
 			except:
 				sys.exit('Error: please connect to a network without a proxy to execute trades.')
 
-			Update()
+			Update(csv, sql, mongo)
+
+			# transaction_history = update_transactions(side, ticker1, ticker2, quantity, dollar_value)
 
 		balance = exchange.fetchBalance()
 		data = update_data(coins)
 
 
 if __name__ == '__main__':
+	csv = True
+	sql = True
+	mongo = False
 	main()
-	print('Rebalance complete')
+	print('Rebalance complete)

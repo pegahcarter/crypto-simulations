@@ -7,6 +7,8 @@ import statistics
 from sklearn.ensemble import RandomForestClassifier
 import seaborn as sns
 
+x = 5
+
 %matplotlib inline
 
 folder = os.getcwd() + '/backtests/10/10_'
