@@ -3,12 +3,10 @@ import numpy as np
 import ccxt
 import os
 import sys
+os.getcwd()
+import sys
 from pathlib import Path
 from datetime import datetime
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from dbs.sql.setup import Transactions, Base
-import sqlite3
 
 import initialize
 import update

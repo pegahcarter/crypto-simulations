@@ -7,7 +7,7 @@ def Update():
 		coin = coin,
 		side = side,
 		ratio = ratio,
-		price = dollar_value/quantity
+		price = dollar_value/quantity,
 		quantity = quantity,
 		dollar_value = dollar_value,
 		fees = dollar_value * .0075
