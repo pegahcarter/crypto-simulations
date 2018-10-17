@@ -1,14 +1,14 @@
 import pandas as pd
 import numpy as np
+import sqlite3
 import ccxt
 import os
 import sys
-os.getcwd()
 import sys
 from pathlib import Path
 from datetime import datetime
 
-import initialize
+import sql.initialize
 import update
 
 def main():
