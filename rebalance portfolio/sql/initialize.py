@@ -10,13 +10,6 @@ def Initialize():
 	import sql.setup
 	db = create_engine(os.getcwd() + '/sql/rebalance.db')
 
-"""
-CREATE TABLE portfolio (
-	coin TEXT PRIMARY KEY		NOT NULL,
-	quantity integer
-);
-"""
-
 
 	for trade_id, coin in enumerate(coins):
 		price, quantity, dollar_value = pull_coin_info(coin)

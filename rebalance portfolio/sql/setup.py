@@ -1,52 +1,51 @@
 import os
 import sys
-from sqlalchemy import Column, ForeignKey, Integer, String, Float
+from pathlib import Path
+from datetime import datetime
+from sqlalchemy import Column, ForeignKey, Integer, String, Float, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from sqlalchemy import create_engine
 
-if Path(os.getcwd() + '/sql/portfolio.db'):
-	return
-
 Base = declarative_base()
 
 class Portfolio(Base):
-    __tablename__ = 'portfolio'
+	__tablename__ = 'portfolio'
 
-	coin = Column(String(10), primary_key=True))
+	coin = Column(String(10), primary_key=True)
 	current_price = Column(Float(10, 2))
 	units = Column(Float(10, 2))
 	avg_cost = Column(Float(10, 2))
-    unrealised_amt = Column(Float(10, 2))
-	unrealised_pct =
+	unrealised_amt = Column(Float(10, 2))
+	unrealised_pct = Column(Float(10, 2))
 	realised_amt = Column(Float(10, 2))
-	realised_pct =
+	realised_pct = Column(Float(10, 2))
 	gain_loss = Column(Float(10, 2))
 	mkt_value = Column(Float(10, 2))
 
 class Transactions(Base):
-    __tablename__ = 'transactions'
+	__tablename__ = 'transactions'
 
-	date =
+	trade_num = Column(Integer, primary_key=True)
 	rebalance_num = Column(Integer)
+	date = Column(DateTime, default=datetime.utcnow)
 	coin = Column(String(10), ForeignKey('portfolio.coin'))
-	side =
-	units =
-	
-
+	side = Column(String(10))
+	units = Column(Float(10,2))
+	price_per_unit = Column(Float(10,2))
+	previous_units = Column(Float(10,2))
+	cumulative_units = Column(Float(10,2))
+	transacted_value = Column(Float(10,2))
+	previous_cost = Column(Float(10,2))
+	cost_of_transaction = Column(Float(10,2))
+	cost_per_unit = Column(Float(10,2))
+	cumulative_cost = Column(Float(10,2))
+	gain_loss = Column(Float(10,2))
+	realised_pct = Column(Float(10,2))
 	portfolio = relationship(Portfolio)
 
-
-
-    id = Column(Integer, primary_key=True)
-    street_name = Column(String(250))
-    street_number = Column(String(250))
-    post_code = Column(String(250), nullable=False)
-    person_id = Column(Integer, ForeignKey('person.id'))
-    person = relationship(Person)
-
-
-engine = create_engine('sqlite:///sql/crypto.db')
+# Create an engine that stores data in our local directory file
+engine = create_engine('sqlite:///crypto.db')
 
 # Create all tables in the engine. This is equivalent to "Create Table"
 # statements in raw SQL.

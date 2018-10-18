@@ -1,15 +1,15 @@
 import pandas as pd
 import numpy as np
-import sqlite3
 import ccxt
 import os
 import sys
 import sys
 from pathlib import Path
 from datetime import datetime
-
-import sql.initialize
 import update
+# NOTE: how do I check if crypto.db exists without running 'through' bash console?
+# If it doesn't exist, how can I create it through a python script?
+# import sql.setup
 
 def main():
 
