@@ -1,41 +1,49 @@
 import os
 import sys
-import sqlite3
 
 def Initialize():
+	btc_price = float(exchange.fetch_ticker('BTC/USDT')['info']['lastPrice'])
+	for i, coin in enumerate(coins):
+		quantity = balance[coin][total]
+		if coin == 'BTC':
+			price = btc_price
+		else:
+			btc_ratio = float(exchange.fetch_ticker(coin + '/BTC')['info']['lastPrice'])
+			price = btc_ratio * btc_price
 
-	if Path(os.getcwd() + '/sql/rebalance.db'):
-		return
-
-	import sql.setup
-	db = create_engine(os.getcwd() + '/sql/rebalance.db')
-
-
-	for trade_id, coin in enumerate(coins):
-		price, quantity, dollar_value = pull_coin_info(coin)
-
-		session.add(Portfolio(
-		coin = coin,
-		current_price = price,
-		quantity = quantity,
-		dollar_value = dollar_value
-		))
-		session.commit()
+		dollar_value = quantity * price
 
 		session.add(Transactions(
-			trade_id = trade_id,
+			trade_num = i,
 			rebalance_id = 0,
 			date = str(datetime.now()),
 			coin = coin,
 			side = 'buy',
-			ratio = coin + '/USD',
-			price = price,
-			quantity = quantity,
-			dollar_value = dollar_value,
-			fees = dollar_value * 0.0075
+			units = quantity,
+			price_per_unit = price,
+			fees = dollar_value * 0.0075,
+			previous_units = 0,
+			cumulative_units = quantity,
+			transacted_value = dollar_value,
+			previous_cost = 0,
+			cost_of_transaction = 0,
+			cost_per_unit = 0,
+			cumulative_cost = dollar_value,
+			gain_loss = 0,
+			realised_pct = 0
 		))
 		session.commit()
 
-
-if __name__ != '__main__':
-	sys.exit('Error: do not run this program separately from rebalace.py.')
+		session.add(Portfolio(
+			coin = coin,
+			current_price = price,
+			units = quantity,
+			cost = dollar_value,
+			cost_per_unit = price,
+			unrealised_amt = 0,
+			unrealised_pct = 0,
+			realised_amt = 0,
+			realised_pct = 0,
+			gain_loss = 0,
+			mkt_value = dollar_value
+		))
