@@ -1,16 +1,11 @@
 import os
 import sys
 
-def Initialize():
+def Initialize(session, exchange, *args):
 	btc_price = float(exchange.fetch_ticker('BTC/USDT')['info']['lastPrice'])
-	for i, coin in enumerate(coins):
+	for i, coin in enumerate(args):
 		quantity = balance[coin][total]
-		if coin == 'BTC':
-			price = btc_price
-		else:
-			btc_ratio = float(exchange.fetch_ticker(coin + '/BTC')['info']['lastPrice'])
-			price = btc_ratio * btc_price
-
+		price = coin_price(coin)
 		dollar_value = quantity * price
 
 		session.add(Transactions(

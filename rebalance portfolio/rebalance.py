@@ -12,11 +12,24 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sql.setup import Transactions, Base
 
+# NOTE: Update code to remove data df.
+
 # NOTE: how do I check if crypto.db exists without running 'through' bash console?
 # If it doesn't exist, how can I create it through a python script?
 # import sql.setup
 
 def main():
+
+	# Function to get current coin price in $
+	def coin_price(coin):
+		btc_price = float(exchange.fetch_ticker('BTC/USDT')['info']['lastPrice'])
+		if coin == 'BTC':
+			price = btc_price
+		else:
+			btc_ratio = float(exchange.fetch_ticker(coin + '/BTC')['info']['lastPrice'])
+			price = btc_ratio * btc_price
+
+		return price
 
 	# Function to determine ticker for trade and side of trade
 	def rebalance_order(coin1, coin2):
@@ -55,16 +68,18 @@ def main():
 			 for asset in balance['info']['balances']
 			 if float(asset['free']) > 0.05 and asset['asset'] != 'GAS']
 
-	engine = create_engine('sqlite:///sql/crypto.db')
-	df = pd.read_sql()
+	engine = create_engine('sqlite:///sql/transactions.db')
 	Base.metadata.bind = engine
 	DBSession = sessionmaker(bind=engine)
 	session = DBSession()
-	server = '100.10.10.10'
+
 	query = ''' SELECT * FROM transactions'''
 	transactions = pd.read_sql(sql=query, con=engine)
 	if len(transactions) == 0:
-		Initialize()
+		Initialize(session, exchange, coins)
+		rebalance_num = 1
+	else:
+		rebalance_num = transactions['rebalance_num'].max() + 1
 
 
 	n = 1/(len(coins))
@@ -73,6 +88,7 @@ def main():
 	# Execute trades until all coin weights in portfolio are within our threshold range
 	while data['weight'][0] - data['weight'][len(data) - 1] > 2 * n * thresh:
 
+		# NOTE: change order to a different term
 		order = rebalance_order(data['symbol'][0], data['symbol'][len(data) - 1])
 		weight_to_move = min([data['weight'][0] - n, n - data['weight'][len(data) - 1]])
 
@@ -84,11 +100,13 @@ def main():
 			quantity = round(weight_to_move * data['dollar_value'].sum() / data[data['symbol'] == ticker1]['price'].values[0], 5)
 			dollar_value = quantity * data[data['symbol'] == ticker1]['price'].values[0]
 			try:
-				exchange.create_order(order[0], 'market', order[1], quantity)
+				order = exchange.create_order(order[0], 'market', order[1], quantity)
 			except:
 				sys.exit('Error: please connect to a network without a proxy to execute trades.')
 
-			Update()
+			Update(rebalance_num, session, order, transactions)
+			# Refresh pandas DataFrame, instead of unnecessary appending
+			transactions = pd.read_sql(sql=query, con=engine)
 
 		balance = exchange.fetchBalance()
 		data = update_data(coins)
@@ -96,6 +114,8 @@ def main():
 
 if __name__ == '__main__':
 	main()
+
+
 	print('Rebalance complete')
 
 
