@@ -10,7 +10,7 @@ import pyodbc
 #import update
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from sql.setup import Portfolio, Transactions, Base
+from sql.setup import Transactions, Base
 
 # NOTE: how do I check if crypto.db exists without running 'through' bash console?
 # If it doesn't exist, how can I create it through a python script?
@@ -30,8 +30,6 @@ def main():
 			except:
 				return coin1 + '/BTC', 'sell', coin2 + '/BTC', 'buy'
 
-	# Function that returns current portfolio values/weights
-	# NOTE: do I really need this?
 
 	# note: You'll have to change this path to the path of your API text file
 	with open('some file.txt', 'r') as f:

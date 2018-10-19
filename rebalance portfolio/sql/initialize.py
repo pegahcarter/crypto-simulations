@@ -33,17 +33,3 @@ def Initialize():
 			realised_pct = 0
 		))
 		session.commit()
-
-		session.add(Portfolio(
-			coin = coin,
-			current_price = price,
-			units = quantity,
-			cost = dollar_value,
-			cost_per_unit = price,
-			unrealised_amt = 0,
-			unrealised_pct = 0,
-			realised_amt = 0,
-			realised_pct = 0,
-			gain_loss = 0,
-			mkt_value = dollar_value
-		))
