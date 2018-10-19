@@ -6,18 +6,17 @@ import sys
 import sys
 from pathlib import Path
 from datetime import datetime
-import update
+import pyodbc
+#import update
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sql.setup import Portfolio, Transactions, Base
+
 # NOTE: how do I check if crypto.db exists without running 'through' bash console?
 # If it doesn't exist, how can I create it through a python script?
 # import sql.setup
 
 def main():
-
-	def pull_coin_info(coin):
-		p = data[data['symbol'] == coin]['price'].values[0]
-		q = data[data['symbol'] == coin]['quantity'].values[0]
-		dv = p * q
-		return p, q, dv
 
 	# Function to determine ticker for trade and side of trade
 	def rebalance_order(coin1, coin2):
@@ -32,28 +31,7 @@ def main():
 				return coin1 + '/BTC', 'sell', coin2 + '/BTC', 'buy'
 
 	# Function that returns current portfolio values/weights
-	def update_data(coins):
-		btc_price = float(exchange.fetch_ticker('BTC/USDT')['info']['lastPrice'])
-		df = pd.DataFrame(columns=['symbol', 'quantity', 'price', 'dollar_value'])
-		for coin in coins:
-			quantity = balance[coin]['total']
-			if coin == 'BTC':
-				price = btc_price
-			else:
-				btc_ratio = float(exchange.fetch_ticker(coin + '/BTC')['info']['lastPrice'])
-				price = btc_ratio * btc_price
-
-			dollar_value = quantity * price
-			df = df.append({
-				'symbol': coin,
-				'quantity': quantity,
-				'price': price,
-				'dollar_value': dollar_value
-			}, ignore_index=True)
-
-		df['weight'] = list(map(lambda x: x / df['dollar_value'].sum(), df['dollar_value']))
-		df = df.sort_values('weight', ascending=False).reset_index(drop=True)
-		return df
+	# NOTE: do I really need this?
 
 	# note: You'll have to change this path to the path of your API text file
 	with open('some file.txt', 'r') as f:
@@ -79,9 +57,17 @@ def main():
 			 for asset in balance['info']['balances']
 			 if float(asset['free']) > 0.05 and asset['asset'] != 'GAS']
 
-	data = update_data(coins)
+	engine = create_engine('sqlite:///sql/crypto.db')
+	df = pd.read_sql()
+	Base.metadata.bind = engine
+	DBSession = sessionmaker(bind=engine)
+	session = DBSession()
+	server = '100.10.10.10'
+	query = ''' SELECT * FROM transactions'''
+	transactions = pd.read_sql(sql=query, con=engine)
+	if len(transactions) == 0:
+		Initialize()
 
-	Initialize()
 
 	n = 1/(len(coins))
 	thresh = .02
@@ -113,3 +99,29 @@ def main():
 if __name__ == '__main__':
 	main()
 	print('Rebalance complete')
+
+
+'''
+def update_data(coins):
+	btc_price = float(exchange.fetch_ticker('BTC/USDT')['info']['lastPrice'])
+	df = pd.DataFrame(columns=['symbol', 'quantity', 'price', 'dollar_value'])
+	for coin in coins:
+		quantity = balance[coin]['total']
+		if coin == 'BTC':
+			price = btc_price
+		else:
+			btc_ratio = float(exchange.fetch_ticker(coin + '/BTC')['info']['lastPrice'])
+			price = btc_ratio * btc_price
+
+		dollar_value = quantity * price
+		df = df.append({
+			'symbol': coin,
+			'quantity': quantity,
+			'price': price,
+			'dollar_value': dollar_value
+		}, ignore_index=True)
+
+	df['weight'] = list(map(lambda x: x / df['dollar_value'].sum(), df['dollar_value']))
+	df = df.sort_values('weight', ascending=False).reset_index(drop=True)
+	return df
+'''

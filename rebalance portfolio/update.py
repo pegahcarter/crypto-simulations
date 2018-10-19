@@ -1,8 +1,7 @@
 def Update():
 
-	# Cumulative units
 	if side == 'buy':
-		
+
 	else:
 
 	session.add(Transactions(
