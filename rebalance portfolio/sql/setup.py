@@ -33,6 +33,7 @@ class Transactions(Base):
 	side = Column(String(10))
 	units = Column(Float(10,2))
 	price_per_unit = Column(Float(10,2))
+	fees = Column(Float(10,2))
 	previous_units = Column(Float(10,2))
 	cumulative_units = Column(Float(10,2))
 	transacted_value = Column(Float(10,2))
