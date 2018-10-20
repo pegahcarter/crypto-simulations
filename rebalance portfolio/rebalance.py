@@ -81,10 +81,25 @@ def main():
 	else:
 		rebalance_num = transactions['rebalance_num'].max() + 1
 
-
 	n = 1/(len(coins))
 	thresh = .02
+# ------------------------------------------------------------------------------
+## Calculating weight without data DataFrame
+quantities = []
+for coin in coins:
+	quantities.append(balance[coin]['total'])
 
+while True:
+	balance = exchange.fetchBalance()
+	dollar_values = np.array([balance[coin]['total'] * coin_price[coin] for coin in coins])
+
+	if (dollar_values.max() - dollar_values.min()) / dollar_values.sum() < 2 * n * thresh:
+		break
+
+
+
+
+# ------------------------------------------------------------------------------
 	# Execute trades until all coin weights in portfolio are within our threshold range
 	while data['weight'][0] - data['weight'][len(data) - 1] > 2 * n * thresh:
 
