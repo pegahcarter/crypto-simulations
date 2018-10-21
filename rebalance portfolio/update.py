@@ -1,3 +1,6 @@
+# NOTE: using this as a template for rebalance.py.  It is outdated.  Once I know
+# I can work with the SQL table correctly, I'll use this function again.
+
 def Update(rebalance_num, session, order, transactions):
 
 	trade_num = transactions['trade_num'].max() + 1
@@ -30,7 +33,7 @@ def Update(rebalance_num, session, order, transactions):
 		session.add(Transactions(
 			trade_num = trade_num,
 			rebalance_num = rebalance_num,
-			date = str(datetime.now()),
+			date = datetime.now(),
 			coin = coin,
 			side = side,
 			units = quantity,

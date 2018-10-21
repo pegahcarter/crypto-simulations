@@ -1,17 +1,20 @@
 import os
 import sys
+from setup import Transactions, Base
 
-def Initialize(session, exchange, *args):
+def Initialize(session, exchange, coins):
+	# NOTE: had issues with coin_price function since it's in rebalance.py
+	balance = exchange.fetchBalance()
 	btc_price = float(exchange.fetch_ticker('BTC/USDT')['info']['lastPrice'])
-	for i, coin in enumerate(args):
-		quantity = balance[coin][total]
+	for i, coin in enumerate(coins):
+		quantity = balance[coin]['total']
 		price = coin_price(coin)
 		dollar_value = quantity * price
 
 		session.add(Transactions(
-			trade_num = i,
-			rebalance_id = 0,
-			date = str(datetime.now()),
+			trade_num = i + 1,
+			rebalance_num = 0,
+			date = datetime.now(),
 			coin = coin,
 			side = 'buy',
 			units = quantity,
@@ -21,10 +24,10 @@ def Initialize(session, exchange, *args):
 			cumulative_units = quantity,
 			transacted_value = dollar_value,
 			previous_cost = 0,
-			cost_of_transaction = 0,
-			cost_per_unit = 0,
+			# cost_of_transaction = 0,
+			# cost_per_unit = 0,
 			cumulative_cost = dollar_value,
-			gain_loss = 0,
+			# gain_loss = 0,
 			realised_pct = 0
 		))
 		session.commit()
