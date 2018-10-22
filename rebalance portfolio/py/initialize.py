@@ -1,6 +1,8 @@
 import os
 import sys
+import ccxt
 from setup import Transactions, Base
+from functions import coin_price
 
 def Initialize(session, exchange, coins):
 	# NOTE: had issues with coin_price function since it's in rebalance.py
@@ -24,10 +26,7 @@ def Initialize(session, exchange, coins):
 			cumulative_units = quantity,
 			transacted_value = dollar_value,
 			previous_cost = 0,
-			# cost_of_transaction = 0,
-			# cost_per_unit = 0,
 			cumulative_cost = dollar_value,
-			# gain_loss = 0,
 			realised_pct = 0
 		))
 		session.commit()

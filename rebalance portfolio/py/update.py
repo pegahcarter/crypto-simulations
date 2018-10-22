@@ -1,52 +1,62 @@
-# NOTE: using this as a template for rebalance.py.  It is outdated.  Once I know
-# I can work with the SQL table correctly, I'll use this function again.
+def Update(coins, sides, quantities, t, session):
 
-def Update(rebalance_num, session, order, transactions):
-
-	trade_num = transactions['trade_num'].max() + 1
-	ratio = order[???].split('/') # Since we are recording both coins
-	sides = [???, ???]
-	dollar_value = order[???]
-
-	for coin, side in zip(ratio, sides):
-		price = coin_price(coin)
-		units = dollar_value / price
+	for coin, side, quantity in zip(trade_coins, trade_sides, trade_quantities):
 		try:
-			temp = transactions.loc[transactions['coin'] == coin]
-			previous_units = temp.at[len(temp)-1, 'cumulative_units']
+			temp = t.loc[t['coin'] == coin]
+			previous_units = temp['cumulative_units'].values[len(temp)-1]
+			previous_cost = temp['cumulative_cost'].values[len(temp)-1]
 			if side == 'buy':
-				cumulative_units = previous_units + units
-				gain_loss, realised_pct = 0, 0
+				transacted_value = trade_dollars * (1 + .0075)
+				cumulative_cost = previous_cost + transacted_value
+				cumulative_units = previous_units + quantity
+
+				cost_of_transaction = 0
+				cost_per_unit = 0
+
+				gain_loss = 0
+				realised_pct = 0
+				# Otherwise, side == 'sell'
 			else:
-				cumulative_units = previous_units - units
+				transacted_value = trade_dollars * (1 - .0075)
+				cumulative_cost = previous_cost - transacted_value
+				cumulative_units = previous_units - quantity
 
+				cost_of_transaction = previous_cost * quantity/previous_units
+				cost_per_unit = previous_cost / previous_units
 
-		# First transaction documented with coin
+				gain_loss = transacted_value - cost_of_transaction
+				realised_pct = gain_loss / cost_of_transaction
+
+		# If it's our first transaction with a coin, we need to add it uniquely
 		except:
-			previous_units, previous_cost, gain_loss, realised_pct = 0, 0, 0, 0
-			cumulative_units = units
-			cost_per_unit = price
 
 
-
-		trade_data =
+		# push to SQL
 		session.add(Transactions(
-			trade_num = trade_num,
 			rebalance_num = rebalance_num,
 			date = datetime.now(),
 			coin = coin,
 			side = side,
 			units = quantity,
-			price_per_unit = dollar_value/quantity,
+			price_per_unit = trade_dollars / quantity,
 			fees = dollar_value * .0075,
-			previous_units = ??,
-			cumulative_units = ??,
-			transacted_value = dollar_value,
-			previous_cost = ??,
-			cost_of_transaction = ??,
-			cost_per_unit = ??,
-			cumulative_cost = ??,
-			gain_loss = ??,
-			realised_pct = ??
+			previous_units = previous_units,
+			cumulative_units = cumulative_units,
+			transacted_value = transacted_value,
+			previous_cost = previous_cost,
+			cost_of_transaction = cost_of_transaction,
+			cost_per_unit = cost_per_unit,
+			cumulative_cost = cumulative_cost,
+			gain_loss = gain_loss,
+			realised_pct = realised_pct
 		))
 		session.commit()
+
+		# Update local transactions data frame
+		engine = create_engine('sqlite:///../sql/transactions.db')
+		Base.metadata.bind = engine
+		DBSession = sessionmaker(bind=engine)
+		session = DBSession()
+		t = pd.read_sql(sql=query, con=engine)
+
+	return t
