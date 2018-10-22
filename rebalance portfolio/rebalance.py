@@ -53,7 +53,8 @@ transactions = pd.read_sql(sql=query, con=engine)
 
 # Create initial transactions of coins if there are no recorded transactions
 if len(transactions) == 0:
-	Initialize(session, exchange, coins)
+	for coin in coins:
+		Initialize(session, exchange, coin)
 	# refresh transactions df
 	transactions = pd.read_sql(sql=query, con=engine)
 	rebalance_num = 1
@@ -63,12 +64,12 @@ else:
 
 n = 1/(len(coins))
 thresh = .02
-
-
 i = 0
+
 while True:
+	# To prevent infinite looping, let's break after 5 trades
 	i += 1
-	if i > 4:
+	if i == 5:
 		sys.exit('5 trades completed. Ending rebalance.')
 
 	balance = exchange.fetchBalance()

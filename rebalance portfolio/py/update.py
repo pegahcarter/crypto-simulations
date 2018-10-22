@@ -7,12 +7,13 @@ from functions import coin_price
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from setup import Transactions, Base
+from initialize import Initialize
 
 # Function to update our sql database with the trade that was just made
 def Update(dual_trade, coins, sides, quantities, t, session):
 
 	# Add a transaction for each side of the trade ratio to keep cost and realised/unrealised
-	# numbers in $.  This will help when we analyze overall performance.
+	# numbers in $.  This will help when to analyze overall performance.
 	for coin, side, quantity in zip(trade_coins, trade_sides, trade_quantities):
 		try:
 			# Small temporary dataframe of all transactions for the coin.  If it's
@@ -70,30 +71,7 @@ def Update(dual_trade, coins, sides, quantities, t, session):
 
 		# It's our first documented trade with the coin, so we need to add it uniquely
 		except:
-			balance = exchange.fetchBalance()
-			btc_price = float(exchange.fetch_ticker('BTC/USDT')['info']['lastPrice'])
-			price = coin_price(coin)
-			quantity = balance[coin]['total']
-			dollar_value = price * quantity
-
-			# NOTE: this session.add is redundant -- it's the exact same in initialize.py.
-			# How do I fix this?
-			session.add(Transactions(
-				rebalance_num = 0,
-				date = datetime.now(),
-				coin = coin,
-				side = 'buy',
-				units = quantity,
-				price_per_unit = price,
-				fees = dollar_value * 0.0075,
-				previous_units = 0,
-				cumulative_units = quantity,
-				transacted_value = dollar_value,
-				previous_cost = 0,
-				cumulative_cost = dollar_value,
-				realised_pct = 0
-			))
-			session.commit()
+			Initialize(session,exchange, coin)
 
 		# Refresh our dataframe with the updated SQL transactions
 		engine = create_engine('sqlite:///../sql/transactions.db')
