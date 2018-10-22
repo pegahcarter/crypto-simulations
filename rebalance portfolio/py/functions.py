@@ -13,6 +13,8 @@ def coin_price(coin):
 
 
 # Function to determine ticker for trade and side of trade
+# We need this because sometimes there's a direct ratio between the two coins,
+# and sometimes there isn't.
 def determine_ticker(coin1, coin2):
 	try:
 		exchange.fetch_ticker(coin1 + '/' + coin2)['info']

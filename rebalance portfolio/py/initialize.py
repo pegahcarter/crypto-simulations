@@ -4,8 +4,8 @@ import ccxt
 from setup import Transactions, Base
 from functions import coin_price
 
+# Function to populate the new sql database with our current portfolio
 def Initialize(session, exchange, coins):
-	# NOTE: had issues with coin_price function since it's in rebalance.py
 	balance = exchange.fetchBalance()
 	btc_price = float(exchange.fetch_ticker('BTC/USDT')['info']['lastPrice'])
 	for i, coin in enumerate(coins):
@@ -14,7 +14,6 @@ def Initialize(session, exchange, coins):
 		dollar_value = quantity * price
 
 		session.add(Transactions(
-			trade_num = i + 1,
 			rebalance_num = 0,
 			date = datetime.now(),
 			coin = coin,
