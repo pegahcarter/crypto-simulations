@@ -28,9 +28,9 @@ class Transactions(Base):
 	realised_pct = Column(Float(10,2))
 
 
-# Create an engine that stores the database within our sql folder
-db = 'sql/transactions.db'
-engine = create_engine('sqlite:///' + db)
+# Create an engine that stores the database
+db = 'transactions.db'
+engine = create_engine('sqlite:////Users/Carter/Documents/Administrative/' + db)
 
 # Create all tables in the engine. This is equivalent to "Create Table"
 # statements in raw SQL.
