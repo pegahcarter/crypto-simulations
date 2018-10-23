@@ -1,9 +1,8 @@
+import ccxt
 # All additional functions used in rebalancing
 
-# Import modules for coin price
-
 # Function to get current coin price in $
-def coin_price(coin):
+def coin_price(exchange, coin):
 	btc_price = float(exchange.fetch_ticker('BTC/USDT')['info']['lastPrice'])
 	if coin == 'BTC':
 		price = btc_price
@@ -17,7 +16,7 @@ def coin_price(coin):
 # Function to determine ticker for trade and side of trade
 # We need this because sometimes there's a direct ratio between the two coins,
 # and sometimes there isn't.
-def determine_ticker(coin1, coin2):
+def determine_ticker(exchange, coin1, coin2):
 	try:
 		exchange.fetch_ticker(coin1 + '/' + coin2)['info']
 		return coin1 + '/' + coin2, 'sell'

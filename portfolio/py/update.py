@@ -3,11 +3,12 @@ import os
 import sys
 import ccxt
 from datetime import datetime
-from functions import coin_price
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from setup import Transactions, Base
-from initialize import Initialize
+
+from py.functions import coin_price
+from py.setup import Transactions, Base
+from py.initialize import Initialize
 
 # Function to update our sql database with the trade that was just made
 def Update(dual_trade, coins, sides, quantities, t, session):
@@ -28,11 +29,11 @@ def Update(dual_trade, coins, sides, quantities, t, session):
 				cumulative_cost = previous_cost + transacted_value
 				cumulative_units = previous_units + quantity
 
-				cost_of_transaction = 0
-				cost_per_unit = 0
+				#cost_of_transaction = 0
+				#cost_per_unit = 0
 
-				gain_loss = 0
-				realised_pct = 0
+				#gain_loss = 0
+				#realised_pct = 0
 			else:
 				transacted_value = trade_dollars * (1 - .0075)
 				cumulative_cost = previous_cost - transacted_value

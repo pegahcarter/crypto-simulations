@@ -1,2 +1,2 @@
-[api key]
-[secret]
+API_KEY
+API_SECRET

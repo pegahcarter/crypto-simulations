@@ -1,11 +1,8 @@
 import os
-import sys
-from pathlib import Path
-from datetime import datetime
+import datetime
 from sqlalchemy import Column, ForeignKey, Integer, String, Float, DateTime
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
 from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
 
@@ -14,7 +11,7 @@ class Transactions(Base):
 
 	trade_num = Column(Integer, primary_key=True)
 	rebalance_num = Column(Integer)
-	date = Column(DateTime, default=datetime.utcnow)
+	date = Column(DateTime, default=datetime.datetime.utcnow)
 	coin = Column(String(10))
 	side = Column(String(10))
 	units = Column(Float(10,2))
@@ -30,8 +27,10 @@ class Transactions(Base):
 	gain_loss = Column(Float(10,2))
 	realised_pct = Column(Float(10,2))
 
-# Create an engine that stores data in our local directory file
-engine = create_engine('sqlite:///transactions.db')
+
+# Create an engine that stores the database within our sql folder
+db = 'sql/transactions.db'
+engine = create_engine('sqlite:///' + db)
 
 # Create all tables in the engine. This is equivalent to "Create Table"
 # statements in raw SQL.
