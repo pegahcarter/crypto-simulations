@@ -1,5 +1,7 @@
 # All additional functions used in rebalancing
 
+# Import modules for coin price
+
 # Function to get current coin price in $
 def coin_price(coin):
 	btc_price = float(exchange.fetch_ticker('BTC/USDT')['info']['lastPrice'])

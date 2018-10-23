@@ -10,7 +10,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from py.setup import Transactions, Base
 from py.initialize import Initialize
-from py.functions import coin_price, determine_ticker
+# from py.functions import coin_price, determine_ticker
 
 # NOTE: how do I check if crypto.db exists without running 'through' bash console?
 # If it doesn't exist, how can I create it through a python script?
@@ -35,6 +35,37 @@ except:
 	sys.exit('Error connecting to API socket.  Please ensure you are opening the \
 		   correct api text file and are not using a network proxy, and try again')
 
+# ------------------------------------------------------------------------------
+# NOTE: need to figure out how to import functions in line 13.  Error message is:
+#
+#  File "C:\Users\Carter\Documents\GitHub\crypto-rebalance\rebalance portfolio\py\functions.py", line 5, in coin_price
+# 	btc_price = float(exchange.fetch_ticker('BTC/USDT')['info']['lastPrice'])
+#
+# NameError: name 'exchange' is not defined
+
+def determine_ticker(coin1, coin2):
+	try:
+		exchange.fetch_ticker(coin1 + '/' + coin2)['info']
+		return coin1 + '/' + coin2, 'sell'
+	except:
+		try:
+			exchange.fetch_ticker(coin2 + '/' + coin1)['info']
+			return coin2 + '/' + coin1, 'buy'
+		except:
+			return coin1 + '/BTC', 'sell', coin2 + '/BTC', 'buy'
+
+# Function to get current coin price in $
+def coin_price(coin):
+	btc_price = float(exchange.fetch_ticker('BTC/USDT')['info']['lastPrice'])
+	if coin == 'BTC':
+		price = btc_price
+	else:
+		btc_ratio = float(exchange.fetch_ticker(coin + '/BTC')['info']['lastPrice'])
+		price = btc_ratio * btc_price
+
+	return price
+
+# ------------------------------------------------------------------------------
 # Don't include coins with quantities less than .05 - helps ignore dust of coins
 # Note: If you're holding less than .05 of a coin with your portfolio, or holding GAS,
 # you'll need to modify the line below.
@@ -50,6 +81,7 @@ session = DBSession()
 
 query = ''' SELECT * FROM transactions'''
 transactions = pd.read_sql(sql=query, con=engine)
+
 
 # Create initial transactions of coins if there are no recorded transactions
 if len(transactions) == 0:
@@ -67,11 +99,6 @@ thresh = .02
 i = 0
 
 while True:
-	# To prevent infinite looping, let's break after 5 trades
-	i += 1
-	if i == 5:
-		sys.exit('5 trades completed. Ending rebalance.')
-
 	balance = exchange.fetchBalance()
 	# NOTE: I had to re-create the coins list since our balance will change after
 	# a transaction, and a second trade would be based on the old balance.
@@ -96,6 +123,13 @@ while True:
 
 	if (dollar_values.max() - dollar_values.min()) / dollar_values.sum() < 2 * n * thresh:
 		break
+
+	# To prevent infinite looping, let's break after 5 trades, but ONLY when the
+	# program still is above 2 * n * thresh.
+	i += 1
+	if i == 5:
+		sys.exit('5 trades completed. Ending rebalance.')
+
 
 	# Determine if there's a trade ratio between the coins, or if we need to convert to BTC first
 	tickers = determine_ticker(coins[dollar_values.argmin()], coins[dollar_values.argmax()])
@@ -131,4 +165,3 @@ while True:
 
 print('Rebalance complete.')
 print('# of trades executed: ', i)
-sleep(15)

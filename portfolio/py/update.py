@@ -66,8 +66,8 @@ def Update(dual_trade, coins, sides, quantities, t, session):
 				session.commit()
 
 				# Don't log the BTC transaction if it's a dual trade
-				if dual_trade:
-					break
+			if dual_trade:
+				break
 
 		# It's our first documented trade with the coin, so we need to add it uniquely
 		except:

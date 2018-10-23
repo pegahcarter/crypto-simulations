@@ -1,8 +1,8 @@
 import os
 import sys
 import ccxt
-from setup import Transactions, Base
-from functions import coin_price
+from py.setup import Transactions, Base
+from py.functions import coin_price
 
 # Function to populate SQL with coins that have no prior documented transactions
 def Initialize(session, exchange, coin):
