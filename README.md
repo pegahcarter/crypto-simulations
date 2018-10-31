@@ -5,14 +5,6 @@
 
 ### Contents
 
----
-
-### rebalance portfolio
-Files to start rebalancing your own crypto portfolio.  Note: code for API interaction
-is designed for Binance.  If you are using a difference exchange, code in 'rebalance.py'
-will need to be adjusted accordingly.  All data is stored in a SQL database.
-
-
 ### backtests
 Python files used to:
 * Retrieve historical price data
