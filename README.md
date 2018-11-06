@@ -17,7 +17,4 @@ first day to the same day a year later.  From there, I chose the date range with
   * HODL and rebalanced simulation results
   * comparative summary of simulations
   
-  
-
-
-
+#### Next step: instead of baskets of 2, 4, 6, 8, and 10 coins, make one basket of 5 coins, and simulate monthly/daily/hourly rebalancing of the coins.  The 5 different baskets of coins is unnecessary and hard to compare one size basket to another.
