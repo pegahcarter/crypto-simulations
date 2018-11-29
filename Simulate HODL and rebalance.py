@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import inspect
 import random
-
+import datetime
 
 def simulate_HODL():
 	sims = pd.DataFrame(index=sim_dates)
@@ -36,7 +36,6 @@ def simulate_rebalance(df):
 	# Create arrays to be transformed to CSV's
 	sim_summary = [[] for x in range(len(cols))]
 	rebalance_sims = np.empty(shape=(len(cols), len(hist_prices)))
-
 
 	# Use the same coin combinations as the HODL simulation
 	coin_lists = [col.split('-') for col in cols]
@@ -168,3 +167,42 @@ if __name__ == '__main__':
 		print('Simulating rebalance of ' + str(num_coins) + ' coins...')
 		simulate_rebalance(df)
 		print('Finished\n')
+
+# ------------------------------------------------------------------------------
+# Testing for simulations with different interval rates
+timestamps = []
+start_date = '2017-01-01 00:00:00'
+start = datetime.datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
+
+for i in range(16500):
+	timestamps.append(start)
+	start += datetime.timedelta(hours=1)
+
+
+
+# NOTE: Should these be dataframes?
+df_hour = []
+df_day = []
+df_month = []
+
+
+day = 1
+month = 1
+for time in timestamps[1:]:
+	function(df_hour)
+	if time.day != day:
+		function(df_day)
+		day = time.day
+
+	if time.month != month:
+		function(df_month)
+		month = time.month
+
+
+
+
+
+
+
+
+# ------------------------------------------------------------------------------
