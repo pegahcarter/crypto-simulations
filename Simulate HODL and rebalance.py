@@ -182,7 +182,7 @@ def hodl():
 		return sims
 
 
-def rebalance(df, time_num):
+def rebalance(df, hr_index):
 
 	return df
 
@@ -197,14 +197,19 @@ for i in range(16500):
 
 
 
+thresh = 0.05
 num_coins = 5
 start_amt = 5000
 amt_each = start_amt/num_coins
+avg_weight = 1/num_coins
+
 
 for coin_list in coin_lists:
+	# TODO: each list will begin with the same coin quantities on day 0
 	df_hour = []
 	df_day = []
 	df_month = []
+
 
 	for i, time in enumerate(timestamps[1:]):
 
@@ -217,13 +222,49 @@ for coin_list in coin_lists:
 			df_month = rebalance(df_month)
 
 
+# -----------------------------------------------
+# Defining classes
+import pandas as pd
+import numpy as np
+df = pd.read_csv('data/historical_prices.csv')
+
+cols = df.columns.tolist()
+coins = ['ETH', 'BTC', 'DASH', 'LTC', 'XMR']
 
 
+class Portfolio(object):
+
+	def __init__(self, coins):
+		self.coins = coins
+		self.quantities = [1000 / df[coin][0] for coin in coins]
+		self.daily_prices = np.array(df[coins])
+
+	def buy(self, coin, dollar_amt, time_index):
+		coin_pos = self.coins.index(coin)
+		quantity = dollar_amt * self.daily_values[time_index, coin_pos]
+		self.quantities[coin_pos] += quantity
+
+	def sell(self, coin, dollar_amt, time_index):
+		coin_pos = self.coins.index(coin)
+		quantity = dollar_amt * self.daily_values[time_index, coin_pos]
+		self.quantities[coin_pos] -= quantity
+
+	def outliers(self, pos):
+		all_d_vals = self.daily_prices[pos] * self.quantities
+		min_pos, max_pos = all_d_vals.argmin(), all_d_vals.argmax()
+		outlier_d_vals = [all_d_vals[min_pos], all_d_vals[max_pos]]
+		outlier_coins = [self.coins[min_pos], self.coins[max_pos]]
+		return outlier_d_vals, outlier_coins
+
+	def total_dollar_value(self, pos):
+		return np.dot(self.daily_prices[pos], self.quantities)
 
 
+test = Portfolio(coins)
+results = test.outliers(10)
+test.total_dollar_value(14)
 
-
-
+# -----------------------------------------------
 # day = 1
 # month = 1
 # if time.day != day:
