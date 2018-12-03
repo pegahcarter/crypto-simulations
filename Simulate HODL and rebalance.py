@@ -170,6 +170,23 @@ if __name__ == '__main__':
 
 # ------------------------------------------------------------------------------
 # Testing for simulations with different interval rates
+
+def hodl():
+	sims = pd.DataFrame(index=sim_dates)
+	for sim_num in range(1000):
+		random_list = random.sample(range(len(coins)-1), num_coins)
+		coin_amts = amt_each / hist_prices[0, random_list]
+		col = '-'.join([coins[i] for i in random_list])
+		sims[col] = hist_prices[:, random_list].dot(coin_amts)
+		sims.to_csv('hodl.csv')
+		return sims
+
+
+def rebalance(df, time_num):
+
+	return df
+
+
 timestamps = []
 start_date = '2017-01-01 00:00:00'
 start = datetime.datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
@@ -180,29 +197,40 @@ for i in range(16500):
 
 
 
-# NOTE: Should these be dataframes?
-df_hour = []
-df_day = []
-df_month = []
+num_coins = 5
+start_amt = 5000
+amt_each = start_amt/num_coins
 
+for coin_list in coin_lists:
+	df_hour = []
+	df_day = []
+	df_month = []
 
-day = 1
-month = 1
-for time in timestamps[1:]:
-	function(df_hour)
-	if time.day != day:
-		function(df_day)
-		day = time.day
+	for i, time in enumerate(timestamps[1:]):
 
-	if time.month != month:
-		function(df_month)
-		month = time.month
+		df_hour = rebalance(df_hour)
 
+		if i % 24 == 0:
+			df_day = rebalance(df_day)
 
-
-
+		if i % (24 * 20) == 0:
+			df_month = rebalance(df_month)
 
 
 
 
+
+
+
+
+
+# day = 1
+# month = 1
+# if time.day != day:
+# 	function(df_day)
+# 	day = time.day
+#
+# if time.month != month:
+# 	function(df_month)
+# 	month = time.month
 # ------------------------------------------------------------------------------
