@@ -1,14 +1,14 @@
 import pandas as pd
 import numpy as np
 
-df = pd.read_csv('data/historical_prices.csv')
+hist_prices = pd.read_csv('data/historical_prices.csv')
 
 class Portfolio(object):
 
 	def __init__(self, coins):
 		self.coins = coins
-		self.quantities = [1000 / df[coin][0] for coin in coins]
-		self.daily_prices = np.array(df[coins])
+		self.quantities = [1000 / hist_prices[coin][0] for coin in coins]
+		self.daily_prices = np.array(hist_prices[coins])
 
 	def buy(self, coin, dollar_amt, time_index):
 		coin_pos = self.coins.index(coin)

@@ -236,16 +236,16 @@ start_date = cap_diffs.index(np.median(cap_diffs))
 
 # Limit dataframe dates to the date range
 hist_prices = hist_prices[start_date:start_date + 8760]
-sim_dates = sim_dates[start_date:start_date + 8760]
+sim_dates = hist_prices['date']
 
 # Retrieve all current tickers on exchange
 exchange = ccxt.bittrex()
 tickers = set()
 [tickers.add(ticker) for ticker in exchange.fetch_tickers()]
 
+hodl_df = hodl(hist_prices)
 
-
-
+rebalance_df = rebalance(hist_prices, hodl_df)
 
 
 
