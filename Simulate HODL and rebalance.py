@@ -171,20 +171,8 @@ if __name__ == '__main__':
 # ------------------------------------------------------------------------------
 # Testing for simulations with different interval rates
 
-def hodl():
-	sims = pd.DataFrame(index=sim_dates)
-	for sim_num in range(1000):
-		random_list = random.sample(range(len(coins)-1), num_coins)
-		coin_amts = amt_each / hist_prices[0, random_list]
-		col = '-'.join([coins[i] for i in random_list])
-		sims[col] = hist_prices[:, random_list].dot(coin_amts)
-		sims.to_csv('hodl.csv')
-		return sims
 
 
-def rebalance(df, hr_index):
-
-	return df
 
 
 timestamps = []
@@ -223,21 +211,37 @@ for coin_list in coin_lists:
 
 
 # -----------------------------------------------
-# Defining classes
+import ccxt
 import pandas as pd
 import numpy as np
-from Portfolio import Portfolio
+from Portfolio import hist_prices, Portfolio
+from functions import hodl, rebalance
 
-cols = df.columns.tolist()
+coins = hist_prices.columns.tolist()[1:]
 
+# TODO: update historical market cap
+hist_mcap = np.array(pd.read_csv('data/historical_market_cap.csv'))
 
+# note- there are 8760 hours in a year
+start_dates = hist_mcap[:len(hist_mcap) - 8760]
+end_date = hist_mcap[8760:]
+cap_diffs = list(end_dates[:, 3] - start_dates[:, 3]) # TODO: fix this after we have the new market cap data
 
+# Make sure there's an odd number of dates, so the median value can be indexed
+if len(cap_diffs) % 2 == 0:
+	cap_diffs.pop(len(cap_diffs)-1)
 
+# Start date for sims
+start_date = cap_diffs.index(np.median(cap_diffs))
 
+# Limit dataframe dates to the date range
+hist_prices = hist_prices[start_date:start_date + 8760]
+sim_dates = sim_dates[start_date:start_date + 8760]
 
-
-
-
+# Retrieve all current tickers on exchange
+exchange = ccxt.bittrex()
+tickers = set()
+[tickers.add(ticker) for ticker in exchange.fetch_tickers()]
 
 
 
