@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import inspect
 import random
-
+import datetime
 
 def simulate_HODL():
 	sims = pd.DataFrame(index=sim_dates)
@@ -36,7 +36,6 @@ def simulate_rebalance(df):
 	# Create arrays to be transformed to CSV's
 	sim_summary = [[] for x in range(len(cols))]
 	rebalance_sims = np.empty(shape=(len(cols), len(hist_prices)))
-
 
 	# Use the same coin combinations as the HODL simulation
 	coin_lists = [col.split('-') for col in cols]
@@ -168,3 +167,92 @@ if __name__ == '__main__':
 		print('Simulating rebalance of ' + str(num_coins) + ' coins...')
 		simulate_rebalance(df)
 		print('Finished\n')
+
+# ------------------------------------------------------------------------------
+# Testing for simulations with different interval rates
+
+def hodl():
+	sims = pd.DataFrame(index=sim_dates)
+	for sim_num in range(1000):
+		random_list = random.sample(range(len(coins)-1), num_coins)
+		coin_amts = amt_each / hist_prices[0, random_list]
+		col = '-'.join([coins[i] for i in random_list])
+		sims[col] = hist_prices[:, random_list].dot(coin_amts)
+		sims.to_csv('hodl.csv')
+		return sims
+
+
+def rebalance(df, hr_index):
+
+	return df
+
+
+timestamps = []
+start_date = '2017-01-01 00:00:00'
+start = datetime.datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
+
+for i in range(16500):
+	timestamps.append(start)
+	start += datetime.timedelta(hours=1)
+
+
+
+thresh = 0.05
+num_coins = 5
+start_amt = 5000
+amt_each = start_amt/num_coins
+avg_weight = 1/num_coins
+
+
+for coin_list in coin_lists:
+	# TODO: each list will begin with the same coin quantities on day 0
+	df_hour = []
+	df_day = []
+	df_month = []
+
+
+	for i, time in enumerate(timestamps[1:]):
+
+		df_hour = rebalance(df_hour)
+
+		if i % 24 == 0:
+			df_day = rebalance(df_day)
+
+		if i % (24 * 20) == 0:
+			df_month = rebalance(df_month)
+
+
+# -----------------------------------------------
+# Defining classes
+import pandas as pd
+import numpy as np
+from Portfolio import Portfolio
+
+cols = df.columns.tolist()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# -----------------------------------------------
+# day = 1
+# month = 1
+# if time.day != day:
+# 	function(df_day)
+# 	day = time.day
+#
+# if time.month != month:
+# 	function(df_month)
+# 	month = time.month
+# ------------------------------------------------------------------------------

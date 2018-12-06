@@ -7,7 +7,7 @@ import datetime
 
 # ------------------------------------------------------------------------------
 # Section to pull hourly price data
-exchange = ccxt.binance({'options':{'adjustForTimeDifference':True}, 'rateLimit':10000, 'enableRateLimit':True})
+exchange = ccxt.binance({'options':{'adjustForTimeDifference':True}})
 
 market = exchange.load_markets()
 tickers = list(market.keys())
@@ -21,16 +21,21 @@ tickers = [coin + '/BTC' for coin in coins]
 tickers.insert(0, 'BTC/USDT')
 
 
+datetime.datetime.fromtimestamp(data[0][0] / 1000)
+datetime.datetime.fromtimestamp(data[-1][0] / 1000)
+
+
+
 
 df = pd.DataFrame()
-
-
-
+end_date = exchange.parse8601('2018-09-30 23:59:59')
 
 msec = 1000
 minute = 60 * msec
+hour = minute * 60
 
 for ticker in tickers:
+	ticker = 'ETH/BTC'
 	start_date = exchange.parse8601('2017-01-01 00:00:00')
 	data = []
 	# NOTE: Since this pulls while start_date < end_date, can it pull 500
@@ -43,12 +48,14 @@ for ticker in tickers:
 
 	while start_date < end_date:
 		try:
-			candles = np.array(exchange.fetch_ohlcv(ticker, '1h'))
+			candles = np.array(exchange.fetch_ohlcv(ticker, '1h', start_date))
 		except:
 			continue
 
-		start_date += len(candles) * minute
-		data += candles[:, 1].tolist()
+		start_date += len(candles) * hour
+		data += candles[:, :2].tolist()
+
+
 
 	df[ticker[:ticker.find('/')]] = data
 
