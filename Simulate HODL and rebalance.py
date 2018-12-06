@@ -169,48 +169,9 @@ if __name__ == '__main__':
 		print('Finished\n')
 
 # ------------------------------------------------------------------------------
-# Testing for simulations with different interval rates
 
 
 
-
-
-timestamps = []
-start_date = '2017-01-01 00:00:00'
-start = datetime.datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
-
-for i in range(16500):
-	timestamps.append(start)
-	start += datetime.timedelta(hours=1)
-
-
-
-thresh = 0.05
-num_coins = 5
-start_amt = 5000
-amt_each = start_amt/num_coins
-avg_weight = 1/num_coins
-
-
-for coin_list in coin_lists:
-	# TODO: each list will begin with the same coin quantities on day 0
-	df_hour = []
-	df_day = []
-	df_month = []
-
-
-	for i, time in enumerate(timestamps[1:]):
-
-		df_hour = rebalance(df_hour)
-
-		if i % 24 == 0:
-			df_day = rebalance(df_day)
-
-		if i % (24 * 20) == 0:
-			df_month = rebalance(df_month)
-
-
-# -----------------------------------------------
 import ccxt
 import pandas as pd
 import numpy as np
@@ -246,17 +207,3 @@ tickers = set()
 hodl_df = hodl(hist_prices)
 
 rebalance_df = rebalance(hist_prices, hodl_df)
-
-
-
-# -----------------------------------------------
-# day = 1
-# month = 1
-# if time.day != day:
-# 	function(df_day)
-# 	day = time.day
-#
-# if time.month != month:
-# 	function(df_month)
-# 	month = time.month
-# ------------------------------------------------------------------------------
