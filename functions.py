@@ -1,6 +1,7 @@
 import numpy as np
 from Portfolio import Portfolio
 
+
 def hodl(df, coin_list):
 
 	date_range = df['date']
@@ -14,47 +15,31 @@ def hodl(df, coin_list):
 		myPortfolio = Portfolio(random_list)
 
 		col = '-'.join([coin_list[i] for i in random_list])
-		sims[col] = myPortfolio.daily_prices.dot(myPortfolio.quantities)
+		sims[col] = np.dot(myPortfolio.daily_prices, myPortfolio.quantities)
 
-	sims.to_csv('hodl.csv')
+	sims.to_csv('data/simulations/hodl.csv')
 	return sims
 
 
-def updatePortfolio():
-	pass
+def rebalance(myPortfolio, time_index):
+	coins_to_trade, dollar_values = myPortfolio.outliers(time_index)
+	total_dollar_value = myPortfolio.total_dollar_value(time_index)
+
+	# See how far the lightest and heaviest coin weight deviates from average weight
+	weight_to_move = min([
+		avg_weight - dollar_values[0]/total_dollar_value,
+		dollar_values[1]/total_dollar_value - avg_weight
+	])
+
+	if weighted_thresh > weight_to_move:
+		return myPortfolio
+
+	trade_in_dollars = weight_to_move * total_dollar_value
+
+	myPortfolio.execute_trade(coins_to_trade, trade_in_dollars, time_index)
+
+	return rebalance(myPortfolio, time_index)
 
 
-def rebalance(df, hodl_df):
-
-	# Set the threshold of weight difference to trigger a trade
-	num_coins = 5
-	thresh = 0.05
-	avg_weight = 1 / num_coins
-	weighted_thresh = np.float32(avg_weight * thresh)
-
-	sims = np.empty(shape=(len(hodl_df.columns), len(hist_prices)))
-
-	# Use the same coin combinations as the HODL simulation
-	coin_lists = [col.split('-') for col in hodl_df.columns]
-
-	for num_sim, coin_list in enumerate(coin_lists):
-
-		Hour = Portfolio(coin_list)
-		Day = Portfolio(coin_list)
-		Month = Portfolio(coin_list)
-
-		for num_day in range(1, len(hist_prices)):
-			updatePortfolio(Hour)
-
-			if num_day % 24 == 0:
-				updatePortfolio(Day)
-
-			if num_day % (24 * 30) == 0:
-				updatePortfolio(Month)
-
-
-
-
-
-def summarize():
-	pass
+def summarize(myPortfolio):
+	return
