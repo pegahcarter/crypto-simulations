@@ -41,15 +41,11 @@ hour = minute * 60
 for ticker in tickers:
 	ticker = 'ETH/BTC'
 	start_date = exchange.parse8601('2017-01-01 00:00:00')
-=======
-minute = msec * 60
-hour = minute * 60
 
 for ticker in tickers:
 	end_date = exchange.parse8601('2018-10-30 00:00:00')
 	# Length of above when queried - 16500 (ETH/BTC) (or 33 queries of 500)
 
->>>>>>> 9da73cdee6499d86fd5a1ef940231adab6030f33
 	data = []
 
 	for i in range(33):

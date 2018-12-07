@@ -7,21 +7,6 @@ import inspect
 import random
 import datetime
 
-def simulate_HODL():
-	sims = pd.DataFrame(index=sim_dates)
-
-	for sim_num in range(1000):
-		random_list = random.sample(range(len(coins)-1), num_coins)
-		coin_amts = amt_each / hist_prices[0, random_list]
-
-		col = '-'.join([coins[i] for i in random_list])
-
-		sims[col] = hist_prices[:, random_list].dot(coin_amts)
-
-	sims.to_csv(path + str(num_coins) + '/' + str(num_coins) + '_HODL.csv')
-	return sims
-
-
 def simulate_rebalance(df):
 
 	# Set the threshold of weight difference to trigger a trade
