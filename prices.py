@@ -5,11 +5,8 @@ import numpy as np
 import pandas as pd
 import datetime
 
-<<<<<<< HEAD
-# ------------------------------------------------------------------------------
 # Section to pull hourly price data
-=======
->>>>>>> 9da73cdee6499d86fd5a1ef940231adab6030f33
+
 exchange = ccxt.binance({'options':{'adjustForTimeDifference':True}})
 
 market = exchange.load_markets()
@@ -55,13 +52,10 @@ for ticker in tickers:
 			continue
 
 		start_date += len(candles) * hour
-<<<<<<< HEAD
+
 		data += candles[:, :2].tolist()
 
-
-=======
 		data += candles[:, 1].tolist()
->>>>>>> 9da73cdee6499d86fd5a1ef940231adab6030f33
 
 	if len(data) == 16500:
 		df[ticker[:ticker.find('/')]] = data
