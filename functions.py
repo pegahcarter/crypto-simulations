@@ -1,20 +1,22 @@
 import numpy as np
+import pandas as pd
 from Portfolio import Portfolio
+import random
 
+def hodl(df):
 
-def hodl(df, coin_list):
-
-	date_range = df['date']
+	date_range = df['timestamp']
 	sims = pd.DataFrame(index=date_range)
-	coin_list = df.columns.tolist()[1:]
-	df = np.array(df[coin_list])
+	coins = df.columns.tolist()[1:]
+	df = np.array(df[coins])
 
 	for sim_num in range(1000):
-		random_list = random.sample(range(len(coin_list)-1), 5)
+		random_list = random.sample(range(len(coins)-1), 5)
+		random_coins = [coins[i] for i in random_list]
 
-		myPortfolio = Portfolio(random_list)
+		myPortfolio = Portfolio(random_coins)
 
-		col = '-'.join([coin_list[i] for i in random_list])
+		col = '-'.join(random_coins)
 		sims[col] = np.dot(myPortfolio.daily_prices, myPortfolio.quantities)
 
 	sims.to_csv('data/simulations/hodl.csv')
