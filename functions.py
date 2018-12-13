@@ -5,18 +5,31 @@ import random
 
 def hodl(df):
 
+	# Use the same dates that are in prices.csv
 	date_range = df['timestamp']
+
+	# initialize our dataframe
 	sims = pd.DataFrame(index=date_range)
+
+	# Take the coin column names as our coin list
 	coins = df.columns.tolist()[1:]
+
+	# convert our dataframe to numpy so we can find the dot product of quantities and prices
 	df = np.array(df[coins])
 
-	for sim_num in range(1000):
-		random_list = random.sample(range(len(coins)-1), 5)
-		random_coins = [coins[i] for i in random_list]
+	# run 250 simulations
+	for sim_num in range(250):
 
+		# randomly select 5 coins to simulate
+		random_coins = random.sample(coins, 5)
+
+		# create portfolio class object
 		myPortfolio = Portfolio(random_coins)
 
+		# Combine the coin list with '-' to use as the column name
 		col = '-'.join(random_coins)
+
+		# Multiply quantities we own by hourly prices to get price for each hour
 		sims[col] = np.dot(myPortfolio.daily_prices, myPortfolio.quantities)
 
 	sims.to_csv('data/simulations/hodl.csv')

@@ -17,29 +17,18 @@ coins = hist_prices.columns.tolist()[1:]
 # Limit dataframe dates to the date range
 sim_dates = hist_prices['timestamp']
 
-# Retrieve all current tickers on exchange
-exchange = ccxt.bittrex()
-tickers = set()
-[tickers.add(ticker) for ticker in exchange.fetch_tickers()]
-
 # create hodl.csv
 hodl_df = hodl(hist_prices)
 
-rebalance_df = rebalance(hist_prices, hodl_df)
+# Intervals for rebalancing
+intervals = {1:'hourly', 24:'daily', 24*30:'monthly'}
 
-trade_intervals = [1, 24, 24*30]
-
-test = {1:'hourly', 24:'daily', 24*30:'monthly'}
-for a in test:
-	print(a)
-
-trade_intervals = {1:'hourly', 24:'daily', 24*30:'monthly'}
-
-for interval in trade_intervals:
+for interval in intervals:
 
 	hr_totals = []
-	sims = pd.DataFrame()
+	sims = pd.DataFrame(sim_dates, columns=['timestamp'])
 
+	# Use the same random coin portfolios that we selected for hodl simulations
 	for col in hodl_df.columns:
 
 		coin_list = col.split('-')
