@@ -1,11 +1,7 @@
 import numpy as np
 import pandas as pd
-from Portfolio import Portfolio, hist_prices, coins
+from Portfolio import Portfolio, hist_prices, all_coins
 import random
-
-thresh = 0.05
-avg_weight = 0.2
-weighted_thresh = np.float32(avg_weight * thresh)
 
 def hodl():
 
@@ -36,10 +32,11 @@ def hodl():
 	return sims
 
 
-def rebalance(myPortfolio, time_index, current_prices):
+def rebalance(myPortfolio, current_prices):
 
-	#coins_to_trade, dollar_values = myPortfolio.outliers(time_index)
-	dollar_values = myPortfolio.dollar_values(current_prices)
+	dollar_values = current_prices * myPortfolio.quantities
+
+	avg_weight = 0.2
 
 	# See how far the lightest and heaviest coin weight deviates from average weight
 	weight_to_move = min([
@@ -47,20 +44,15 @@ def rebalance(myPortfolio, time_index, current_prices):
 		max(dollar_values)/sum(dollar_values) - avg_weight
 	])
 
-	if weighted_thresh > weight_to_move:
+	if 0.01 > weight_to_move: # note: 0.01 is the same as 0.05 threshold w/ 0.20 weights
 		return myPortfolio
 
 	trade_in_dollars = weight_to_move * sum(dollar_values)
 	coin_indices = dollar_values.argmin(), dollar_values.argmax()
 
-	# myPortfolio.sell(coin_to_sell, trade_in_dollars, current_prices)
-	# myPortfolio.buy(coin_to_buy, trade_in_dollars, current_prices)
-	#
-
 	myPortfolio.execute_trade(coin_indices, trade_in_dollars, current_prices)
 
-
-	return rebalance(myPortfolio, time_index)
+	return rebalance(myPortfolio, current_prices)
 
 
 def summarize(myPortfolio):
