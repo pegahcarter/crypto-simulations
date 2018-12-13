@@ -1,8 +1,11 @@
-This repository was used to simulate a HODL strategy and a daily rebalancing strategy to analyze the effectiveness of rebalancing.
-Simulations were conducted by randomly selecting a basket of 5 coins 1,000 times and documenting the daily value of the portfolio over the course of one year.
+This repository was used to simulate a HODL strategy and a rebalancing strategy to analyze the effectiveness of portfolio rebalancing.
+Backtests were conducted by randomly selecting a basket of 5 coins 250 times and recording the value of the portfolio over the course of one year.  The rebalancing strategy was used in several frequencies:
 
-To combat any inherent bias of choosing the date range to simulate, I calculated the difference of the overall crypto market cap from the
-first day to the same day a year later.  From there, I chose the date range with the median difference.
+    *  Hourly
+    *  Daily
+    *  Weekly
+    *  Monthly
+
 
 ## Contents
 
@@ -11,9 +14,10 @@ first day to the same day a year later.  From there, I chose the date range with
 
 ### data
   * __historical__
-     * historical crypto market cap
-     * historical price of most top-100 cryptocurrencies
+     * historical crypto market cap of Bitcoin
+     * historical price of most available cryptocurrencies on Bittrex
   * __simulations__
-     * results of hourly, daily, and monthly simulated rebalancing
+     * results of hourly, daily, weekly, and monthly simulated rebalancing
+     * results of hodl strategy
   
 #### Coming soon: a deep, comparative analysis between the HODL and rebalance simulations.
