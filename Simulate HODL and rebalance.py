@@ -2,7 +2,7 @@ import ccxt
 import pandas as pd
 import numpy as np
 import random
-from Portfolio import Portfolio, hist_prices, all_coins
+from Portfolio import Portfolio, hist_prices
 from functions import hodl, rebalance
 
 # create hodl.csv
@@ -10,7 +10,12 @@ hodl()
 hodl_df = pd.read_csv('data/simulations/hodl.csv')
 
 # Intervals for rebalancing
-intervals = {1:'hourly', 24:'daily', 24*30:'monthly'}
+intervals = {
+	1:'hourly',
+	24:'daily',
+	24*7:'weekly',
+	24*30:'monthly'
+}
 
 for interval in intervals.keys():
 

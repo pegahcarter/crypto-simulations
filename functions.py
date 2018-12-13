@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from Portfolio import Portfolio, hist_prices, all_coins
+from Portfolio import Portfolio, hist_prices
 import random
 
 def hodl():
@@ -35,7 +35,6 @@ def hodl():
 def rebalance(myPortfolio, current_prices):
 
 	dollar_values = current_prices * myPortfolio.quantities
-
 	avg_weight = 0.2
 
 	# See how far the lightest and heaviest coin weight deviates from average weight
