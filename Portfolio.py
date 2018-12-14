@@ -11,5 +11,6 @@ class Portfolio(object):
 
 	def execute_trade(self, coin_indices, dollar_amt, current_prices):
 		buy_index, sell_index = coin_indices
-		self.quantities[buy_index] += (dollar_amt / current_prices[buy_index])
+		# Include a 1% slippage rate and 0.1% trading fee
+		self.quantities[buy_index] += (dollar_amt / current_prices[buy_index] * 0.989)
 		self.quantities[sell_index] -= (dollar_amt / current_prices[sell_index])

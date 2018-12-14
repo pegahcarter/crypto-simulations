@@ -8,6 +8,8 @@ def hodl():
 	# initialize our dataframe
 	sims = pd.DataFrame(index=hist_prices['timestamp'])
 
+	coins = hist_prices.columns[1:].tolist()
+
 	# convert our dataframe to numpy so we can find the dot product of quantities and prices
 	df = np.array(hist_prices[coins])
 
