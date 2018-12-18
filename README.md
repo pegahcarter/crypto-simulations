@@ -1,10 +1,10 @@
 This repository was used to simulate a HODL strategy and a rebalancing strategy to analyze the effectiveness of portfolio rebalancing.
 Backtests were conducted by randomly selecting a basket of 5 coins 250 times and recording the value of the portfolio over the course of one year.  The rebalancing strategy was used in several frequencies:
 
-    *  Hourly
-    *  Daily
-    *  Weekly
-    *  Monthly
+*  Hourly
+*  Daily
+*  Weekly
+*  Monthly
 
 
 ## Contents
