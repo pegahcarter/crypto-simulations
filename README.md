@@ -20,5 +20,3 @@ Backtests were conducted by randomly selecting a basket of 5 coins 250 times and
      * results of hourly, daily, weekly, and monthly simulated rebalancing
      * results of hodl strategy
      * summary of results across all strategies
-  
-#### Coming soon: a deep, comparative analysis between the HODL and rebalance simulations.
